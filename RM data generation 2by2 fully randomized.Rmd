@@ -15,7 +15,7 @@ First, let's see what gpt4o comes up with for us:
 
 ```{r}
 # Load required library
-set.seed(123) # For reproducibility
+#      set.seed(123) # For reproducibility
 
 # Define parameters
 n <- 20 # Number of subjects per condition
@@ -42,15 +42,86 @@ factor_levels$DV <- with(factor_levels, {
 factor_levels$A <- factor(factor_levels$A)
 factor_levels$B <- factor(factor_levels$B)
 
-# Examine the dataset
-head(factor_levels)
-
 # Save to a data frame for further use
 simulated_data <- factor_levels
 
 ```
 
-Great, now let's analyze it:
+Add a column of Likert scale ratings (1-7) that could result from the 
+underlying gaussian dv being measured categorically:
+
+```{r}
+# Add a categorical column to the dataset based on evenly spaced intervals
+simulated_data$DV_likert7 <- cut(simulated_data$DV, 
+                                     breaks = seq(min(simulated_data$DV), 
+                                                  max(simulated_data$DV), 
+                                                  length.out = 8), 
+                                     labels = 1:7, 
+                                     include.lowest = TRUE)
+# make it numeric rather than a factor
+simulated_data$DV_likert7 <- as.numeric(as.character(simulated_data$DV_likert7))
+```
+
+Add another column translating it to a 1-5 Likert scale:
+
+```{r}
+# Add a categorical column to the dataset based on evenly spaced intervals
+simulated_data$DV_likert5 <- cut(simulated_data$DV, 
+                                     breaks = seq(min(simulated_data$DV), 
+                                                  max(simulated_data$DV), 
+                                                  length.out = 6), 
+                                     labels = 1:5, 
+                                     include.lowest = TRUE)
+# make it numeric rather than a factor
+simulated_data$DV_likert5 <- as.numeric(as.character(simulated_data$DV_likert5))
+
+# View the updated dataset
+head(simulated_data)
+```
+
+Check the cell means of each version of the DV to make sure it looks right:
+
+```{r}
+# Load dplyr
+library(dplyr)
+
+# Calculate cell means and standard deviations for the original gaussian DV
+cell_stats <- simulated_data %>%
+  group_by(A, B) %>%
+  summarize(
+    Mean = mean(DV),
+    SD = sd(DV),
+    .groups = "drop"
+  )
+# Display the results
+print(cell_stats)
+
+# Calculate cell means and standard deviations for the 1-7 likert scale DV
+cell_stats7 <- simulated_data %>%
+  group_by(A, B) %>%
+  summarize(
+    Mean = mean(DV_likert7),
+    SD = sd(DV_likert7),
+    .groups = "drop"
+  )
+# Display the results
+print(cell_stats7)
+
+# Calculate cell means and standard deviations for the 1-5 likert scale DV
+cell_stats5 <- simulated_data %>%
+  group_by(A, B) %>%
+  summarize(
+    Mean = mean(DV_likert5),
+    SD = sd(DV_likert5),
+    .groups = "drop"
+  )
+# Display the results
+print(cell_stats5)
+
+```
+
+
+Great, now let's analyze it, first using the underlying gaussian DV:
 
 ```{r}
 # Run the ANOVA
@@ -61,4 +132,24 @@ summary(anova_result)
 
 ```
 
+Then do the same analysis using the categorical 1-7 rating scale version of the DV:
 
+```{r}
+# Run the ANOVA
+anova_result7 <- aov(DV_likert7 ~ A * B, data = simulated_data)
+
+# Summarize the results
+summary(anova_result7)
+
+```
+
+Then do the same analysis using the categorical 1-5 rating scale version of the DV:
+
+```{r}
+# Run the ANOVA
+anova_result5 <- aov(DV_likert5 ~ A * B, data = simulated_data)
+
+# Summarize the results
+summary(anova_result5)
+
+```

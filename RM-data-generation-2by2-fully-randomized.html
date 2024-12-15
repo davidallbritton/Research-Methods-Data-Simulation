@@ -363,7 +363,7 @@ Subjects</h1>
 factorial design</h2>
 <p>First, let’s see what gpt4o comes up with for us:</p>
 <pre class="r"><code># Load required library
-set.seed(123) # For reproducibility
+#      set.seed(123) # For reproducibility
 
 # Define parameters
 n &lt;- 20 # Number of subjects per condition
@@ -390,28 +390,142 @@ factor_levels$DV &lt;- with(factor_levels, {
 factor_levels$A &lt;- factor(factor_levels$A)
 factor_levels$B &lt;- factor(factor_levels$B)
 
-# Examine the dataset
-head(factor_levels)</code></pre>
-<pre><code>##      A  B Subject          DV
-## 1   A1 B1       1 -0.56047565
-## 1.1 A1 B1       2 -0.23017749
-## 1.2 A1 B1       3  1.55870831
-## 1.3 A1 B1       4  0.07050839
-## 1.4 A1 B1       5  0.12928774
-## 1.5 A1 B1       6  1.71506499</code></pre>
-<pre class="r"><code># Save to a data frame for further use
+# Save to a data frame for further use
 simulated_data &lt;- factor_levels</code></pre>
-<p>Great, now let’s analyze it:</p>
+<p>Add a column of Likert scale ratings (1-7) that could result from the
+underlying gaussian dv being measured categorically:</p>
+<pre class="r"><code># Add a categorical column to the dataset based on evenly spaced intervals
+simulated_data$DV_likert7 &lt;- cut(simulated_data$DV, 
+                                     breaks = seq(min(simulated_data$DV), 
+                                                  max(simulated_data$DV), 
+                                                  length.out = 8), 
+                                     labels = 1:7, 
+                                     include.lowest = TRUE)
+# make it numeric rather than a factor
+simulated_data$DV_likert7 &lt;- as.numeric(as.character(simulated_data$DV_likert7))</code></pre>
+<p>Add another column translating it to a 1-5 Likert scale:</p>
+<pre class="r"><code># Add a categorical column to the dataset based on evenly spaced intervals
+simulated_data$DV_likert5 &lt;- cut(simulated_data$DV, 
+                                     breaks = seq(min(simulated_data$DV), 
+                                                  max(simulated_data$DV), 
+                                                  length.out = 6), 
+                                     labels = 1:5, 
+                                     include.lowest = TRUE)
+# make it numeric rather than a factor
+simulated_data$DV_likert5 &lt;- as.numeric(as.character(simulated_data$DV_likert5))
+
+# View the updated dataset
+head(simulated_data)</code></pre>
+<pre><code>##      A  B Subject         DV DV_likert7 DV_likert5
+## 1   A1 B1       1  0.7053637          5          4
+## 1.1 A1 B1       2 -0.9609007          2          2
+## 1.2 A1 B1       3 -0.3553605          3          2
+## 1.3 A1 B1       4  0.8356264          5          4
+## 1.4 A1 B1       5 -1.6685390          1          1
+## 1.5 A1 B1       6 -0.5035740          3          2</code></pre>
+<p>Check the cell means of each version of the DV to make sure it looks
+right:</p>
+<pre class="r"><code># Load dplyr
+library(dplyr)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     filter, lag</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code># Calculate cell means and standard deviations for the original gaussian DV
+cell_stats &lt;- simulated_data %&gt;%
+  group_by(A, B) %&gt;%
+  summarize(
+    Mean = mean(DV),
+    SD = sd(DV),
+    .groups = &quot;drop&quot;
+  )
+# Display the results
+print(cell_stats)</code></pre>
+<pre><code>## # A tibble: 4 × 4
+##   A     B       Mean    SD
+##   &lt;fct&gt; &lt;fct&gt;  &lt;dbl&gt; &lt;dbl&gt;
+## 1 A1    B1     0.139 1.04 
+## 2 A1    B2    -0.301 0.818
+## 3 A2    B1     0.559 0.939
+## 4 A2    B2     0.960 0.861</code></pre>
+<pre class="r"><code># Calculate cell means and standard deviations for the 1-7 likert scale DV
+cell_stats7 &lt;- simulated_data %&gt;%
+  group_by(A, B) %&gt;%
+  summarize(
+    Mean = mean(DV_likert7),
+    SD = sd(DV_likert7),
+    .groups = &quot;drop&quot;
+  )
+# Display the results
+print(cell_stats7)</code></pre>
+<pre><code>## # A tibble: 4 × 4
+##   A     B      Mean    SD
+##   &lt;fct&gt; &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 A1    B1     3.85  1.73
+## 2 A1    B2     3.05  1.39
+## 3 A2    B1     4.5   1.61
+## 4 A2    B2     5.2   1.36</code></pre>
+<pre class="r"><code># Calculate cell means and standard deviations for the 1-5 likert scale DV
+cell_stats5 &lt;- simulated_data %&gt;%
+  group_by(A, B) %&gt;%
+  summarize(
+    Mean = mean(DV_likert5),
+    SD = sd(DV_likert5),
+    .groups = &quot;drop&quot;
+  )
+# Display the results
+print(cell_stats5)</code></pre>
+<pre><code>## # A tibble: 4 × 4
+##   A     B      Mean    SD
+##   &lt;fct&gt; &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 A1    B1     2.95 1.36 
+## 2 A1    B2     2.25 0.910
+## 3 A2    B1     3.4  1.23 
+## 4 A2    B2     3.95 1.10</code></pre>
+<p>Great, now let’s analyze it, first using the underlying gaussian
+DV:</p>
 <pre class="r"><code># Run the ANOVA
 anova_result &lt;- aov(DV ~ A * B, data = simulated_data)
 
 # Summarize the results
 summary(anova_result)</code></pre>
-<pre><code>##             Df Sum Sq Mean Sq F value Pr(&gt;F)  
-## A            1   5.84   5.840   6.677 0.0117 *
-## B            1   1.78   1.777   2.032 0.1581  
-## A:B          1   1.09   1.088   1.244 0.2682  
-## Residuals   76  66.47   0.875                 
+<pre><code>##             Df Sum Sq Mean Sq F value   Pr(&gt;F)    
+## A            1  14.13  14.127  16.747 0.000105 ***
+## B            1   0.01   0.008   0.009 0.923344    
+## A:B          1   3.53   3.528   4.182 0.044309 *  
+## Residuals   76  64.11   0.844                     
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<p>Then do the same analysis using the categorical 1-7 rating scale
+version of the DV:</p>
+<pre class="r"><code># Run the ANOVA
+anova_result7 &lt;- aov(DV_likert7 ~ A * B, data = simulated_data)
+
+# Summarize the results
+summary(anova_result7)</code></pre>
+<pre><code>##             Df Sum Sq Mean Sq F value   Pr(&gt;F)    
+## A            1  39.20   39.20  16.765 0.000105 ***
+## B            1   0.05    0.05   0.021 0.884124    
+## A:B          1  11.25   11.25   4.811 0.031328 *  
+## Residuals   76 177.70    2.34                     
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<p>Then do the same analysis using the categorical 1-5 rating scale
+version of the DV:</p>
+<pre class="r"><code># Run the ANOVA
+anova_result5 &lt;- aov(DV_likert5 ~ A * B, data = simulated_data)
+
+# Summarize the results
+summary(anova_result5)</code></pre>
+<pre><code>##             Df Sum Sq Mean Sq F value   Pr(&gt;F)    
+## A            1  23.11  23.112  17.145 8.88e-05 ***
+## B            1   0.11   0.113   0.083   0.7735    
+## A:B          1   7.81   7.812   5.796   0.0185 *  
+## Residuals   76 102.45   1.348                     
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
 </div>
