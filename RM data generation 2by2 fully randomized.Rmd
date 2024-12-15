@@ -153,3 +153,11 @@ anova_result5 <- aov(DV_likert5 ~ A * B, data = simulated_data)
 summary(anova_result5)
 
 ```
+
+Write the simulated data to a file
+
+```{r}
+# Save the simulated data to a CSV file
+write.csv(simulated_data, file = "simulated_data.csv", row.names = FALSE)
+```
+
