@@ -1,0 +1,64 @@
+---
+title: "Generating Data For Two By Two Between Subjects"
+author: "David Allbritton"
+date: "2024-12-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Generating Data for a 2x2 fully randomized (between subjects) factorial design
+
+First, let's see what gpt4o comes up with for us:
+
+```{r}
+# Load required library
+set.seed(123) # For reproducibility
+
+# Define parameters
+n <- 20 # Number of subjects per condition
+effect_A <- 0.5 # Effect size for factor A
+effect_B <- 0.1 # Effect size for factor B
+effect_AB <- 0.5 # Effect size for interaction A*B
+sd_error <- 1 # Standard deviation of the error term
+
+# Create a 2x2 factorial design
+factor_levels <- expand.grid(A = c("A1", "A2"), B = c("B1", "B2"))
+factor_levels <- factor_levels[rep(1:nrow(factor_levels), each = n), ]
+factor_levels$Subject <- 1:nrow(factor_levels)
+
+# Generate data
+factor_levels$DV <- with(factor_levels, {
+  mu <- 0 # Baseline mean
+  mu <- mu + (A == "A2") * effect_A      # Add effect of A
+  mu <- mu + (B == "B2") * effect_B      # Add effect of B
+  mu <- mu + (A == "A2" & B == "B2") * effect_AB # Add interaction
+  rnorm(nrow(factor_levels), mean = mu, sd = sd_error) # Add Gaussian noise
+})
+
+# Convert factors to factor type
+factor_levels$A <- factor(factor_levels$A)
+factor_levels$B <- factor(factor_levels$B)
+
+# Examine the dataset
+head(factor_levels)
+
+# Save to a data frame for further use
+simulated_data <- factor_levels
+
+```
+
+Great, now let's analyze it:
+
+```{r}
+# Run the ANOVA
+anova_result <- aov(DV ~ A * B, data = simulated_data)
+
+# Summarize the results
+summary(anova_result)
+
+```
+
+
