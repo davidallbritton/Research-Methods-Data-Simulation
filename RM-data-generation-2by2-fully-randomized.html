@@ -369,7 +369,7 @@ shows some diagnostics and analyses using the simulated data.</p>
 <pre class="r"><code>#      set.seed(123)     # For reproducibility; leave commented for different data each time
 ################################
 ## Define parameters
-n &lt;- 100000 # Number of subjects per condition
+n &lt;- 20 # Number of subjects per condition
 Baseline_Mean &lt;- 0 # Baseline mean
 effect_A      &lt;- .5 # Effect size for factor A
 effect_B      &lt;- 1 # Effect size for factor B
@@ -453,12 +453,12 @@ simulated_data$DV_likert5 &lt;- as.numeric(as.character(simulated_data$DV_likert
 # View the updated dataset
 head(simulated_data)</code></pre>
 <pre><code>##      A  B Subject         DV DV_likert7 DV_likert5
-## 1   A1 B1       1 0.66884535          4          3
-## 1.1 A1 B1       2 1.71632436          5          3
-## 1.2 A1 B1       3 0.25036624          4          3
-## 1.3 A1 B1       4 0.01065303          4          3
-## 1.4 A1 B1       5 0.47220035          4          3
-## 1.5 A1 B1       6 2.43451074          5          4</code></pre>
+## 1   A1 B1       1 -0.5536973          2          2
+## 1.1 A1 B1       2  1.1326038          4          3
+## 1.2 A1 B1       3  0.1518868          3          2
+## 1.3 A1 B1       4  1.0844643          4          3
+## 1.4 A1 B1       5  0.4383945          3          2
+## 1.5 A1 B1       6 -0.0132045          3          2</code></pre>
 <p>Write the simulated data to a file</p>
 <pre class="r"><code># Save the simulated data to a CSV file
 write.csv(simulated_data, file = &quot;simulated_data.csv&quot;, row.names = FALSE)</code></pre>
@@ -478,12 +478,12 @@ cell_stats &lt;- simulated_data %&gt;%
 # Display the results
 print(cell_stats)</code></pre>
 <pre><code>## # A tibble: 4 × 4
-##   A     B        Mean    SD
-##   &lt;fct&gt; &lt;fct&gt;   &lt;dbl&gt; &lt;dbl&gt;
-## 1 A1    B1    0.499   0.997
-## 2 A1    B2    0.496   0.999
-## 3 A2    B1    0.00754 1.01 
-## 4 A2    B2    2.00    0.993</code></pre>
+##   A     B      Mean    SD
+##   &lt;fct&gt; &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 A1    B1    0.668 0.907
+## 2 A1    B2    0.521 0.916
+## 3 A2    B1    0.167 0.971
+## 4 A2    B2    2.05  1.14</code></pre>
 <pre class="r"><code># Calculate cell means and standard deviations for the 1-7 likert scale DV
 cell_stats7 &lt;- simulated_data %&gt;%
   group_by(A, B) %&gt;%
@@ -497,10 +497,10 @@ print(cell_stats7)</code></pre>
 <pre><code>## # A tibble: 4 × 4
 ##   A     B      Mean    SD
 ##   &lt;fct&gt; &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt;
-## 1 A1    B1     3.83 0.699
-## 2 A1    B2     3.83 0.698
-## 3 A2    B1     3.52 0.704
-## 4 A2    B2     4.79 0.696</code></pre>
+## 1 A1    B1     3.25 0.967
+## 2 A1    B2     3.1  0.852
+## 3 A2    B1     2.7  1.13 
+## 4 A2    B2     4.65 1.23</code></pre>
 <pre class="r"><code># Calculate cell means and standard deviations for the 1-5 likert scale DV
 cell_stats5 &lt;- simulated_data %&gt;%
   group_by(A, B) %&gt;%
@@ -514,10 +514,10 @@ print(cell_stats5)</code></pre>
 <pre><code>## # A tibble: 4 × 4
 ##   A     B      Mean    SD
 ##   &lt;fct&gt; &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt;
-## 1 A1    B1     2.88 0.528
-## 2 A1    B2     2.88 0.529
-## 3 A2    B1     2.66 0.549
-## 4 A2    B2     3.56 0.551</code></pre>
+## 1 A1    B1     2.5  0.761
+## 2 A1    B2     2.4  0.681
+## 3 A2    B1     2.15 0.671
+## 4 A2    B2     3.55 0.826</code></pre>
 <p>Great, now let’s analyze it, first using the underlying gaussian
 DV:</p>
 <pre class="r"><code>library(car)
@@ -531,12 +531,12 @@ anova_result</code></pre>
 <pre><code>## Anova Table (Type III tests)
 ## 
 ## Response: DV
-##             Sum Sq    Df F value    Pr(&gt;F)    
-## (Intercept) 225669 1e+00  226315 &lt; 2.2e-16 ***
-## A            25740 1e+00   25814 &lt; 2.2e-16 ***
-## B            99223 1e+00   99507 &lt; 2.2e-16 ***
-## A:B          99677 1e+00   99963 &lt; 2.2e-16 ***
-## Residuals   398853 4e+05                      
+##             Sum Sq Df F value    Pr(&gt;F)    
+## (Intercept) 58.098  1 59.4197 3.973e-11 ***
+## A            5.307  1  5.4276 0.0224779 *  
+## B           15.105  1 15.4492 0.0001855 ***
+## A:B         20.675  1 21.1456 1.667e-05 ***
+## Residuals   74.309 76                      
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
 <p>Then do the same analysis using the categorical 1-7 rating scale
@@ -547,12 +547,12 @@ anova_result7</code></pre>
 <pre><code>## Anova Table (Type III tests)
 ## 
 ## Response: DV_likert7
-##              Sum Sq    Df  F value    Pr(&gt;F)    
-## (Intercept) 6370594 1e+00 13032408 &lt; 2.2e-16 ***
-## A             10412 1e+00    21300 &lt; 2.2e-16 ***
-## B             40419 1e+00    82686 &lt; 2.2e-16 ***
-## A:B           40526 1e+00    82904 &lt; 2.2e-16 ***
-## Residuals    195529 4e+05                       
+##             Sum Sq Df  F value    Pr(&gt;F)    
+## (Intercept) 938.45  1 846.0522 &lt; 2.2e-16 ***
+## A             5.00  1   4.5077 0.0369978 *  
+## B            16.20  1  14.6050 0.0002693 ***
+## A:B          22.05  1  19.8790 2.805e-05 ***
+## Residuals    84.30 76                       
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
 <p>Then do the same analysis using the categorical 1-5 rating scale
@@ -563,21 +563,22 @@ anova_result5</code></pre>
 <pre><code>## Anova Table (Type III tests)
 ## 
 ## Response: DV_likert5
-##              Sum Sq    Df  F value    Pr(&gt;F)    
-## (Intercept) 3592012 1e+00 12357358 &lt; 2.2e-16 ***
-## A              5301 1e+00    18237 &lt; 2.2e-16 ***
-## B             20437 1e+00    70307 &lt; 2.2e-16 ***
-## A:B           20542 1e+00    70668 &lt; 2.2e-16 ***
-## Residuals    116270 4e+05                       
+##             Sum Sq Df   F value    Pr(&gt;F)    
+## (Intercept) 561.80  1 1033.8208 &lt; 2.2e-16 ***
+## A             3.20  1    5.8886 0.0176087 *  
+## B             8.45  1   15.5496 0.0001775 ***
+## A:B          11.25  1   20.7022 1.998e-05 ***
+## Residuals    41.30 76                        
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
 <p>Check the effect sizes in the simulated data. It turns out
 empirically that using partial eta squared appears to be the right way
 to calculate Cohen’s d so that it can be compared to the effect sizes we
 used to generate the data.<br />
-With a large N that reproduces the input effect sizes exactly. I can’t
-tell you why partial eta squared is the right choice instead of eta
-squared, but empirically it appears that it is the right choice.</p>
+With a large N calculating d from partial eta squared reproduces the
+input effect sizes exactly. I can’t tell you why partial eta squared is
+the right choice instead of eta squared, but empirically it appears that
+it is the right choice.</p>
 <pre class="r"><code>library(sjstats)
 # Extract effect sizes
 eta_squared &lt;- effectsize::eta_squared(anova_result, partial = FALSE) # Full Eta-squared</code></pre>
@@ -594,12 +595,15 @@ eta_squared &lt;- effectsize::eta_squared(anova_result, partial = FALSE) # Full 
 #effectSizes &lt;- eta_squared
 #effectSizes &lt;- effectSizes %&gt;% mutate(d = eta_sq_to_d(Eta2))  # using the previously defined function
 #effectSizes</code></pre>
-<pre><code>## [1] &quot;&quot;</code></pre>
-<pre><code>## [1] &quot;  Effect sizes used to generate the data&quot;</code></pre>
+<p>Effect sizes that were actually used to generate the simulated
+data</p>
+<pre class="r"><code># print the actual effect sizes that were used to generate the simulated data:
+print(effect_A)</code></pre>
 <pre><code>## [1] 0.5</code></pre>
+<pre class="r"><code>print(effect_B)</code></pre>
 <pre><code>## [1] 1</code></pre>
+<pre class="r"><code>print(effect_AB)</code></pre>
 <pre><code>## [1] 1</code></pre>
-<pre><code>## [1] &quot;&quot;</code></pre>
 <p>Effect sizes observed in analysis of the simulated data</p>
 <pre class="r"><code>effectSizes2 &lt;- partial_eta_squared
 effectSizes2 &lt;- effectSizes2 %&gt;% mutate(d = eta_sq_to_d(Eta2_partial))  # using the previously defined function
@@ -608,9 +612,9 @@ effectSizes2</code></pre>
 ## 
 ## Parameter | Eta2 (partial) |       95% CI |    d
 ## ------------------------------------------------
-## A         |           0.06 | [0.06, 1.00] | 0.51
-## B         |           0.20 | [0.20, 1.00] | 1.00
-## A:B       |           0.20 | [0.20, 1.00] | 1.00</code></pre>
+## A         |           0.07 | [0.01, 1.00] | 0.53
+## B         |           0.17 | [0.06, 1.00] | 0.90
+## A:B       |           0.22 | [0.10, 1.00] | 1.05</code></pre>
 </div>
 
 

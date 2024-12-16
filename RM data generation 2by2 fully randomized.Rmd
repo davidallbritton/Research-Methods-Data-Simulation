@@ -20,7 +20,7 @@ it will create an .html file that shows some diagnostics and analyses using the 
 #      set.seed(123)     # For reproducibility; leave commented for different data each time
 ################################
 ## Define parameters
-n <- 100000 # Number of subjects per condition
+n <- 20 # Number of subjects per condition
 Baseline_Mean <- 0 # Baseline mean
 effect_A      <- .5 # Effect size for factor A
 effect_B      <- 1 # Effect size for factor B
@@ -189,7 +189,7 @@ anova_result5
 Check the effect sizes in the simulated data.  It turns out empirically that
 using partial eta squared appears to be the right way to calculate Cohen's d
 so that it can be compared to the effect sizes we used to generate the data.  
-With a large N that reproduces the input effect sizes exactly.  I can't tell you 
+With a large N calculating d from partial eta squared reproduces the input effect sizes exactly.  I can't tell you 
 why partial eta squared is the right choice instead of eta squared, but empirically
 it appears that it is the right choice.
 
@@ -205,15 +205,13 @@ partial_eta_squared <- effectsize::eta_squared(anova_result, partial = TRUE) # P
 #effectSizes
 ```
 
+Effect sizes that were actually used to generate the simulated data
 
-```{r echo=FALSE}
+```{r echo=T}
 # print the actual effect sizes that were used to generate the simulated data:
-print("")
-print("  Effect sizes used to generate the data")
 print(effect_A)
 print(effect_B)
 print(effect_AB)
-print("")
 ```
 
 Effect sizes observed in analysis of the simulated data 
