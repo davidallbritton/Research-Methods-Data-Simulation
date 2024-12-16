@@ -11,7 +11,7 @@
 
 <meta name="author" content="David Allbritton" />
 
-<meta name="date" content="2024-12-14" />
+<meta name="date" content="2024-12-15" />
 
 <title>Generating Data For Two By Two Between Subjects</title>
 
@@ -353,45 +353,81 @@ display: none;
 <h1 class="title toc-ignore">Generating Data For Two By Two Between
 Subjects</h1>
 <h4 class="author">David Allbritton</h4>
-<h4 class="date">2024-12-14</h4>
+<h4 class="date">2024-12-15</h4>
 
 </div>
 
 
+<p>Create simulated data for a 2x2 fully randomized (all
+between-subjects) ANOVA design. The .csv file of simulated data contains
+a “DV” column of normally distributed (gaussian) data, plus a conversion
+of that data to a 7-point likert scale and a conversion to a 5-point
+likert scale.</p>
+<p>Whenever you “Knit” this .rmd file in Rstudio, it will create a data
+file called “simulated_data.csv”, and it will create an .html file that
+shows some diagnostics and analyses using the simulated data.</p>
+<pre class="r"><code>#      set.seed(123)     # For reproducibility; leave commented for different data each time
+################################
+## Define parameters
+n &lt;- 100000 # Number of subjects per condition
+Baseline_Mean &lt;- 0 # Baseline mean
+effect_A      &lt;- .5 # Effect size for factor A
+effect_B      &lt;- 1 # Effect size for factor B
+effect_AB     &lt;- 1 # Effect size for interaction A*B
+sd_error      &lt;- 1 # Standard deviation of the error term
+#  Note that the effect sizes only make sense if the sd_error = 1 in the current code; could change that later.
+################################</code></pre>
+<pre class="r"><code># load libraries and functions
+library(car)</code></pre>
+<pre><code>## Loading required package: carData</code></pre>
+<pre class="r"><code>library(dplyr)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:car&#39;:
+## 
+##     recode</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     filter, lag</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>library(sjstats)</code></pre>
+<pre><code>## Warning: package &#39;sjstats&#39; was built under R version 4.4.2</code></pre>
+<pre class="r"><code>################
+# function to convert eta squared to d
+# formula:   d = 2 * sqrt(es / (1 - es))
+#   where d = cohen&#39;s d, es = eta squared from a two-group design (or a single df contrast)
+eta_sq_to_d &lt;- function(es) {
+  d &lt;- 2 * sqrt(es / (1-es))
+  d
+}
+################</code></pre>
 <div id="generating-data-for-a-2x2-fully-randomized-between-subjects-factorial-design" class="section level2">
 <h2>Generating Data for a 2x2 fully randomized (between subjects)
 factorial design</h2>
-<p>First, let’s see what gpt4o comes up with for us:</p>
-<pre class="r"><code># Load required library
-#      set.seed(123) # For reproducibility
+<p>First, let’s see what gpt4o comes up with for us. It sort of worked,
+but I had to adjust the way it handles the interaction term.</p>
+<pre class="r"><code># Create a 2x2 factorial design
+simulated_data &lt;- expand.grid(A = c(&quot;A1&quot;, &quot;A2&quot;), B = c(&quot;B1&quot;, &quot;B2&quot;))
+simulated_data &lt;- simulated_data[rep(1:nrow(simulated_data), each = n), ]
+simulated_data$Subject &lt;- 1:nrow(simulated_data)
 
-# Define parameters
-n &lt;- 20 # Number of subjects per condition
-effect_A &lt;- 0.5 # Effect size for factor A
-effect_B &lt;- 0.1 # Effect size for factor B
-effect_AB &lt;- 0.5 # Effect size for interaction A*B
-sd_error &lt;- 1 # Standard deviation of the error term
-
-# Create a 2x2 factorial design
-factor_levels &lt;- expand.grid(A = c(&quot;A1&quot;, &quot;A2&quot;), B = c(&quot;B1&quot;, &quot;B2&quot;))
-factor_levels &lt;- factor_levels[rep(1:nrow(factor_levels), each = n), ]
-factor_levels$Subject &lt;- 1:nrow(factor_levels)
-
-# Generate data
-factor_levels$DV &lt;- with(factor_levels, {
-  mu &lt;- 0 # Baseline mean
+# Generate gaussian data
+simulated_data$DV &lt;- with(simulated_data, {
+  mu &lt;- Baseline_Mean # Baseline mean
   mu &lt;- mu + (A == &quot;A2&quot;) * effect_A      # Add effect of A
   mu &lt;- mu + (B == &quot;B2&quot;) * effect_B      # Add effect of B
-  mu &lt;- mu + (A == &quot;A2&quot; &amp; B == &quot;B2&quot;) * effect_AB # Add interaction
-  rnorm(nrow(factor_levels), mean = mu, sd = sd_error) # Add Gaussian noise
+  mu &lt;- mu - (A == &quot;A1&quot; &amp; B == &quot;B2&quot;) * effect_AB /2 # Add interaction
+  mu &lt;- mu + (A == &quot;A2&quot; &amp; B == &quot;B2&quot;) * effect_AB /2 # Add interaction
+  mu &lt;- mu + (A == &quot;A1&quot; &amp; B == &quot;B1&quot;) * effect_AB /2 # Add interaction
+  mu &lt;- mu - (A == &quot;A2&quot; &amp; B == &quot;B1&quot;) * effect_AB /2 # Add interaction
+  rnorm(nrow(simulated_data), mean = mu, sd = sd_error) # Add Gaussian noise
 })
 
 # Convert factors to factor type
-factor_levels$A &lt;- factor(factor_levels$A)
-factor_levels$B &lt;- factor(factor_levels$B)
-
-# Save to a data frame for further use
-simulated_data &lt;- factor_levels</code></pre>
+simulated_data$A &lt;- factor(simulated_data$A)
+simulated_data$B &lt;- factor(simulated_data$B)</code></pre>
 <p>Add a column of Likert scale ratings (1-7) that could result from the
 underlying gaussian dv being measured categorically:</p>
 <pre class="r"><code># Add a categorical column to the dataset based on evenly spaced intervals
@@ -417,25 +453,21 @@ simulated_data$DV_likert5 &lt;- as.numeric(as.character(simulated_data$DV_likert
 # View the updated dataset
 head(simulated_data)</code></pre>
 <pre><code>##      A  B Subject         DV DV_likert7 DV_likert5
-## 1   A1 B1       1  1.0411114          5          4
-## 1.1 A1 B1       2  0.2598821          4          3
-## 1.2 A1 B1       3 -0.2316628          3          2
-## 1.3 A1 B1       4 -1.1634771          2          1
-## 1.4 A1 B1       5 -0.9494122          2          2
-## 1.5 A1 B1       6 -1.6840000          1          1</code></pre>
+## 1   A1 B1       1 0.66884535          4          3
+## 1.1 A1 B1       2 1.71632436          5          3
+## 1.2 A1 B1       3 0.25036624          4          3
+## 1.3 A1 B1       4 0.01065303          4          3
+## 1.4 A1 B1       5 0.47220035          4          3
+## 1.5 A1 B1       6 2.43451074          5          4</code></pre>
+<p>Write the simulated data to a file</p>
+<pre class="r"><code># Save the simulated data to a CSV file
+write.csv(simulated_data, file = &quot;simulated_data.csv&quot;, row.names = FALSE)</code></pre>
 <p>Check the cell means of each version of the DV to make sure it looks
 right:</p>
 <pre class="r"><code># Load dplyr
-library(dplyr)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;dplyr&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
-## 
-##     filter, lag</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     intersect, setdiff, setequal, union</code></pre>
-<pre class="r"><code># Calculate cell means and standard deviations for the original gaussian DV
+library(dplyr)
+
+# Calculate cell means and standard deviations for the original gaussian DV
 cell_stats &lt;- simulated_data %&gt;%
   group_by(A, B) %&gt;%
   summarize(
@@ -448,10 +480,10 @@ print(cell_stats)</code></pre>
 <pre><code>## # A tibble: 4 × 4
 ##   A     B        Mean    SD
 ##   &lt;fct&gt; &lt;fct&gt;   &lt;dbl&gt; &lt;dbl&gt;
-## 1 A1    B1    0.00228 0.984
-## 2 A1    B2    0.231   1.14 
-## 3 A2    B1    0.444   0.877
-## 4 A2    B2    0.594   0.875</code></pre>
+## 1 A1    B1    0.499   0.997
+## 2 A1    B2    0.496   0.999
+## 3 A2    B1    0.00754 1.01 
+## 4 A2    B2    2.00    0.993</code></pre>
 <pre class="r"><code># Calculate cell means and standard deviations for the 1-7 likert scale DV
 cell_stats7 &lt;- simulated_data %&gt;%
   group_by(A, B) %&gt;%
@@ -465,10 +497,10 @@ print(cell_stats7)</code></pre>
 <pre><code>## # A tibble: 4 × 4
 ##   A     B      Mean    SD
 ##   &lt;fct&gt; &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt;
-## 1 A1    B1     3.55  1.54
-## 2 A1    B2     3.85  1.90
-## 3 A2    B1     4.25  1.41
-## 4 A2    B2     4.6   1.50</code></pre>
+## 1 A1    B1     3.83 0.699
+## 2 A1    B2     3.83 0.698
+## 3 A2    B1     3.52 0.704
+## 4 A2    B2     4.79 0.696</code></pre>
 <pre class="r"><code># Calculate cell means and standard deviations for the 1-5 likert scale DV
 cell_stats5 &lt;- simulated_data %&gt;%
   group_by(A, B) %&gt;%
@@ -482,55 +514,103 @@ print(cell_stats5)</code></pre>
 <pre><code>## # A tibble: 4 × 4
 ##   A     B      Mean    SD
 ##   &lt;fct&gt; &lt;fct&gt; &lt;dbl&gt; &lt;dbl&gt;
-## 1 A1    B1     2.75  1.25
-## 2 A1    B2     2.85  1.31
-## 3 A2    B1     3.25  1.07
-## 4 A2    B2     3.4   1.10</code></pre>
+## 1 A1    B1     2.88 0.528
+## 2 A1    B2     2.88 0.529
+## 3 A2    B1     2.66 0.549
+## 4 A2    B2     3.56 0.551</code></pre>
 <p>Great, now let’s analyze it, first using the underlying gaussian
 DV:</p>
-<pre class="r"><code># Run the ANOVA
-anova_result &lt;- aov(DV ~ A * B, data = simulated_data)
+<pre class="r"><code>library(car)
 
-# Summarize the results
-summary(anova_result)</code></pre>
-<pre><code>##             Df Sum Sq Mean Sq F value Pr(&gt;F)  
-## A            1   3.24   3.240   3.398 0.0692 .
-## B            1   0.72   0.715   0.750 0.3891  
-## A:B          1   0.03   0.032   0.033 0.8560  
-## Residuals   76  72.46   0.953                 
+# Setting contrasts for sum-to-zero coding; type III sums of squares do not work sensibly with the default &quot;treatment&quot; contrasts
+# setting the contrasts option here will set it for the whole session:
+options(contrasts = c(&quot;contr.sum&quot;, &quot;contr.poly&quot;))
+
+anova_result &lt;- Anova(lm(DV ~ A * B, data = simulated_data), type = &quot;III&quot;)
+anova_result</code></pre>
+<pre><code>## Anova Table (Type III tests)
+## 
+## Response: DV
+##             Sum Sq    Df F value    Pr(&gt;F)    
+## (Intercept) 225669 1e+00  226315 &lt; 2.2e-16 ***
+## A            25740 1e+00   25814 &lt; 2.2e-16 ***
+## B            99223 1e+00   99507 &lt; 2.2e-16 ***
+## A:B          99677 1e+00   99963 &lt; 2.2e-16 ***
+## Residuals   398853 4e+05                      
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
 <p>Then do the same analysis using the categorical 1-7 rating scale
 version of the DV:</p>
 <pre class="r"><code># Run the ANOVA
-anova_result7 &lt;- aov(DV_likert7 ~ A * B, data = simulated_data)
-
-# Summarize the results
-summary(anova_result7)</code></pre>
-<pre><code>##             Df Sum Sq Mean Sq F value Pr(&gt;F)  
-## A            1  10.51  10.512   4.117  0.046 *
-## B            1   2.11   2.112   0.827  0.366  
-## A:B          1   0.01   0.013   0.005  0.944  
-## Residuals   76 194.05   2.553                 
+anova_result7 &lt;- Anova(lm(DV_likert7 ~ A * B, data = simulated_data), type = &quot;III&quot;)
+anova_result7</code></pre>
+<pre><code>## Anova Table (Type III tests)
+## 
+## Response: DV_likert7
+##              Sum Sq    Df  F value    Pr(&gt;F)    
+## (Intercept) 6370594 1e+00 13032408 &lt; 2.2e-16 ***
+## A             10412 1e+00    21300 &lt; 2.2e-16 ***
+## B             40419 1e+00    82686 &lt; 2.2e-16 ***
+## A:B           40526 1e+00    82904 &lt; 2.2e-16 ***
+## Residuals    195529 4e+05                       
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
 <p>Then do the same analysis using the categorical 1-5 rating scale
 version of the DV:</p>
 <pre class="r"><code># Run the ANOVA
-anova_result5 &lt;- aov(DV_likert5 ~ A * B, data = simulated_data)
-
-# Summarize the results
-summary(anova_result5)</code></pre>
-<pre><code>##             Df Sum Sq Mean Sq F value Pr(&gt;F)  
-## A            1   5.51   5.512   3.921 0.0513 .
-## B            1   0.31   0.312   0.222 0.6387  
-## A:B          1   0.01   0.013   0.009 0.9251  
-## Residuals   76 106.85   1.406                 
+anova_result5 &lt;- Anova(lm(DV_likert5 ~ A * B, data = simulated_data), type = &quot;III&quot;)
+anova_result5</code></pre>
+<pre><code>## Anova Table (Type III tests)
+## 
+## Response: DV_likert5
+##              Sum Sq    Df  F value    Pr(&gt;F)    
+## (Intercept) 3592012 1e+00 12357358 &lt; 2.2e-16 ***
+## A              5301 1e+00    18237 &lt; 2.2e-16 ***
+## B             20437 1e+00    70307 &lt; 2.2e-16 ***
+## A:B           20542 1e+00    70668 &lt; 2.2e-16 ***
+## Residuals    116270 4e+05                       
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-<p>Write the simulated data to a file</p>
-<pre class="r"><code># Save the simulated data to a CSV file
-write.csv(simulated_data, file = &quot;simulated_data.csv&quot;, row.names = FALSE)</code></pre>
+<p>Check the effect sizes in the simulated data. It turns out
+empirically that using partial eta squared appears to be the right way
+to calculate Cohen’s d so that it can be compared to the effect sizes we
+used to generate the data.<br />
+With a large N that reproduces the input effect sizes exactly. I can’t
+tell you why partial eta squared is the right choice instead of eta
+squared, but empirically it appears that it is the right choice.</p>
+<pre class="r"><code>library(sjstats)
+# Extract effect sizes
+eta_squared &lt;- effectsize::eta_squared(anova_result, partial = FALSE) # Full Eta-squared</code></pre>
+<pre><code>## Type 3 ANOVAs only give sensible and informative results when covariates
+##   are mean-centered and factors are coded with orthogonal contrasts (such
+##   as those produced by `contr.sum`, `contr.poly`, or `contr.helmert`, but
+##   *not* by the default `contr.treatment`).</code></pre>
+<pre class="r"><code>partial_eta_squared &lt;- effectsize::eta_squared(anova_result, partial = TRUE) # Partial Eta-squared</code></pre>
+<pre><code>## Type 3 ANOVAs only give sensible and informative results when covariates
+##   are mean-centered and factors are coded with orthogonal contrasts (such
+##   as those produced by `contr.sum`, `contr.poly`, or `contr.helmert`, but
+##   *not* by the default `contr.treatment`).</code></pre>
+<pre class="r"><code># add a column for Cohen&#39;s d and display the results
+#effectSizes &lt;- eta_squared
+#effectSizes &lt;- effectSizes %&gt;% mutate(d = eta_sq_to_d(Eta2))  # using the previously defined function
+#effectSizes</code></pre>
+<pre><code>## [1] &quot;&quot;</code></pre>
+<pre><code>## [1] &quot;  Effect sizes used to generate the data&quot;</code></pre>
+<pre><code>## [1] 0.5</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre><code>## [1] &quot;&quot;</code></pre>
+<p>Effect sizes observed in analysis of the simulated data</p>
+<pre class="r"><code>effectSizes2 &lt;- partial_eta_squared
+effectSizes2 &lt;- effectSizes2 %&gt;% mutate(d = eta_sq_to_d(Eta2_partial))  # using the previously defined function
+effectSizes2</code></pre>
+<pre><code>## # Effect Size for ANOVA
+## 
+## Parameter | Eta2 (partial) |       95% CI |    d
+## ------------------------------------------------
+## A         |           0.06 | [0.06, 1.00] | 0.51
+## B         |           0.20 | [0.20, 1.00] | 1.00
+## A:B       |           0.20 | [0.20, 1.00] | 1.00</code></pre>
 </div>
 
 

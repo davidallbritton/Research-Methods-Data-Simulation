@@ -1,7 +1,7 @@
 ---
 title: "Generating Data For Two By Two Between Subjects"
 author: "David Allbritton"
-date: "2024-12-14"
+date: "2024-12-15"
 output: html_document
 ---
 
@@ -9,42 +9,70 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Generating Data for a 2x2 fully randomized (between subjects) factorial design
+Create simulated data for a 2x2 fully randomized (all between-subjects) ANOVA design.  The 
+.csv file of simulated data contains a "DV" column of normally distributed (gaussian) data, plus
+a conversion of that data to a 7-point likert scale and a conversion to a 5-point likert scale.
 
-First, let's see what gpt4o comes up with for us:
+Whenever you "Knit" this .rmd file in Rstudio, it will create a data file called "simulated_data.csv", and
+it will create an .html file that shows some diagnostics and analyses using the simulated data.
 
 ```{r}
-# Load required library
-#      set.seed(123) # For reproducibility
+#      set.seed(123)     # For reproducibility; leave commented for different data each time
+################################
+## Define parameters
+n <- 100000 # Number of subjects per condition
+Baseline_Mean <- 0 # Baseline mean
+effect_A      <- .5 # Effect size for factor A
+effect_B      <- 1 # Effect size for factor B
+effect_AB     <- 1 # Effect size for interaction A*B
+sd_error      <- 1 # Standard deviation of the error term
+#  Note that the effect sizes only make sense if the sd_error = 1 in the current code; could change that later.
+################################
+```
 
-# Define parameters
-n <- 20 # Number of subjects per condition
-effect_A <- 0.5 # Effect size for factor A
-effect_B <- 0.1 # Effect size for factor B
-effect_AB <- 0.5 # Effect size for interaction A*B
-sd_error <- 1 # Standard deviation of the error term
+```{r}
+# load libraries and functions
+library(car)
+library(dplyr)
+library(sjstats)
 
+################
+# function to convert eta squared to d
+# formula:   d = 2 * sqrt(es / (1 - es))
+#   where d = cohen's d, es = eta squared from a two-group design (or a single df contrast)
+eta_sq_to_d <- function(es) {
+  d <- 2 * sqrt(es / (1-es))
+  d
+}
+################
+```
+
+## Generating Data for a 2x2 fully randomized (between subjects) factorial design
+
+First, let's see what gpt4o comes up with for us.  It sort of worked, but I had to 
+adjust the way it handles the interaction term.
+
+```{r}
 # Create a 2x2 factorial design
-factor_levels <- expand.grid(A = c("A1", "A2"), B = c("B1", "B2"))
-factor_levels <- factor_levels[rep(1:nrow(factor_levels), each = n), ]
-factor_levels$Subject <- 1:nrow(factor_levels)
+simulated_data <- expand.grid(A = c("A1", "A2"), B = c("B1", "B2"))
+simulated_data <- simulated_data[rep(1:nrow(simulated_data), each = n), ]
+simulated_data$Subject <- 1:nrow(simulated_data)
 
-# Generate data
-factor_levels$DV <- with(factor_levels, {
-  mu <- 0 # Baseline mean
+# Generate gaussian data
+simulated_data$DV <- with(simulated_data, {
+  mu <- Baseline_Mean # Baseline mean
   mu <- mu + (A == "A2") * effect_A      # Add effect of A
   mu <- mu + (B == "B2") * effect_B      # Add effect of B
-  mu <- mu + (A == "A2" & B == "B2") * effect_AB # Add interaction
-  rnorm(nrow(factor_levels), mean = mu, sd = sd_error) # Add Gaussian noise
+  mu <- mu - (A == "A1" & B == "B2") * effect_AB /2 # Add interaction
+  mu <- mu + (A == "A2" & B == "B2") * effect_AB /2 # Add interaction
+  mu <- mu + (A == "A1" & B == "B1") * effect_AB /2 # Add interaction
+  mu <- mu - (A == "A2" & B == "B1") * effect_AB /2 # Add interaction
+  rnorm(nrow(simulated_data), mean = mu, sd = sd_error) # Add Gaussian noise
 })
 
 # Convert factors to factor type
-factor_levels$A <- factor(factor_levels$A)
-factor_levels$B <- factor(factor_levels$B)
-
-# Save to a data frame for further use
-simulated_data <- factor_levels
-
+simulated_data$A <- factor(simulated_data$A)
+simulated_data$B <- factor(simulated_data$B)
 ```
 
 Add a column of Likert scale ratings (1-7) that could result from the 
@@ -78,6 +106,14 @@ simulated_data$DV_likert5 <- as.numeric(as.character(simulated_data$DV_likert5))
 # View the updated dataset
 head(simulated_data)
 ```
+
+Write the simulated data to a file
+
+```{r}
+# Save the simulated data to a CSV file
+write.csv(simulated_data, file = "simulated_data.csv", row.names = FALSE)
+```
+
 
 Check the cell means of each version of the DV to make sure it looks right:
 
@@ -124,40 +160,70 @@ print(cell_stats5)
 Great, now let's analyze it, first using the underlying gaussian DV:
 
 ```{r}
-# Run the ANOVA
-anova_result <- aov(DV ~ A * B, data = simulated_data)
+library(car)
 
-# Summarize the results
-summary(anova_result)
+# Setting contrasts for sum-to-zero coding; type III sums of squares do not work sensibly with the default "treatment" contrasts
+# setting the contrasts option here will set it for the whole session:
+options(contrasts = c("contr.sum", "contr.poly"))
 
+anova_result <- Anova(lm(DV ~ A * B, data = simulated_data), type = "III")
+anova_result
 ```
 
 Then do the same analysis using the categorical 1-7 rating scale version of the DV:
 
 ```{r}
 # Run the ANOVA
-anova_result7 <- aov(DV_likert7 ~ A * B, data = simulated_data)
-
-# Summarize the results
-summary(anova_result7)
-
+anova_result7 <- Anova(lm(DV_likert7 ~ A * B, data = simulated_data), type = "III")
+anova_result7
 ```
 
 Then do the same analysis using the categorical 1-5 rating scale version of the DV:
 
 ```{r}
 # Run the ANOVA
-anova_result5 <- aov(DV_likert5 ~ A * B, data = simulated_data)
-
-# Summarize the results
-summary(anova_result5)
-
+anova_result5 <- Anova(lm(DV_likert5 ~ A * B, data = simulated_data), type = "III")
+anova_result5
 ```
 
-Write the simulated data to a file
+Check the effect sizes in the simulated data.  It turns out empirically that
+using partial eta squared appears to be the right way to calculate Cohen's d
+so that it can be compared to the effect sizes we used to generate the data.  
+With a large N that reproduces the input effect sizes exactly.  I can't tell you 
+why partial eta squared is the right choice instead of eta squared, but empirically
+it appears that it is the right choice.
 
 ```{r}
-# Save the simulated data to a CSV file
-write.csv(simulated_data, file = "simulated_data.csv", row.names = FALSE)
+library(sjstats)
+# Extract effect sizes
+eta_squared <- effectsize::eta_squared(anova_result, partial = FALSE) # Full Eta-squared
+partial_eta_squared <- effectsize::eta_squared(anova_result, partial = TRUE) # Partial Eta-squared
+
+# add a column for Cohen's d and display the results
+#effectSizes <- eta_squared
+#effectSizes <- effectSizes %>% mutate(d = eta_sq_to_d(Eta2))  # using the previously defined function
+#effectSizes
 ```
+
+
+```{r echo=FALSE}
+# print the actual effect sizes that were used to generate the simulated data:
+print("")
+print("  Effect sizes used to generate the data")
+print(effect_A)
+print(effect_B)
+print(effect_AB)
+print("")
+```
+
+Effect sizes observed in analysis of the simulated data 
+
+```{r}
+effectSizes2 <- partial_eta_squared
+effectSizes2 <- effectSizes2 %>% mutate(d = eta_sq_to_d(Eta2_partial))  # using the previously defined function
+effectSizes2
+```
+
+
+
 
