@@ -5,6 +5,42 @@ library(car)
 library(effectsize)
 library(sjstats)
 
+#######  Define custom functions #######
+effect_direction <- function(data, effect) {
+  # Ensure valid effect input
+  if (!effect %in% c("A", "B", "AB")) {
+    stop("Effect must be one of 'A', 'B', or 'AB'")
+  }
+  
+  # For main effect of A
+  if (effect == "A") {
+    mean_A1 <- mean(data$DV[data$A == "A1"])
+    mean_A2 <- mean(data$DV[data$A == "A2"])
+    return(ifelse(mean_A1 <= mean_A2, 1, -1))
+  }
+  
+  # For main effect of B
+  if (effect == "B") {
+    mean_B1 <- mean(data$DV[data$B == "B1"])
+    mean_B2 <- mean(data$DV[data$B == "B2"])
+    return(ifelse(mean_B1 <= mean_B2, 1, -1))
+  }
+  
+  # For interaction effect AB
+  if (effect == "AB") {
+    mean_A1B1 <- mean(data$DV[data$A == "A1" & data$B == "B1"])
+    mean_A1B2 <- mean(data$DV[data$A == "A1" & data$B == "B2"])
+    mean_A2B1 <- mean(data$DV[data$A == "A2" & data$B == "B1"])
+    mean_A2B2 <- mean(data$DV[data$A == "A2" & data$B == "B2"])
+    
+    interaction_A1 <- mean_A1B2 - mean_A1B1
+    interaction_A2 <- mean_A2B2 - mean_A2B1
+    
+    return(ifelse(interaction_A2 >= interaction_A1, 1, -1))
+  }
+}
+#################
+
 ui <- fluidPage(
   titlePanel("2x2 Between-Subjects Data Simulation"),
   
@@ -92,10 +128,23 @@ server <- function(input, output) {
   
   output$effect_sizes <- renderTable({
     data <- generate_data()
+    
     options(contrasts = c("contr.sum", "contr.poly"))
     anova_result <- Anova(lm(DV ~ A * B, data = data), type = "III")
     partial_eta <- eta_squared(anova_result, partial = TRUE)
-    partial_eta %>% mutate(d = 2 * sqrt(Eta2_partial / (1 - Eta2_partial)))
+    # determine whether effect sizes are positive or negative
+    sign_A <- effect_direction(data, "A")
+    sign_B <- effect_direction(data, "B")
+    sign_AB <- effect_direction(data, "AB")
+    signs <- c(sign_A, sign_B, sign_AB)
+    partial_eta$signs <- signs
+    partial_eta <- partial_eta %>% mutate(d = signs * 2 * sqrt(Eta2_partial / (1 - Eta2_partial)))
+    # re-read the inputs for the true effect sizes
+    isolate(
+      true_ds <- c(input$effect_size_A, input$effect_size_B, input$effect_size_AB)
+    )
+    partial_eta$"True d" <- true_ds
+    partial_eta %>% select(Parameter,	Eta2_partial,	d, "True d")
   })
   
   output$diagnostic_plot <- renderPlot({
