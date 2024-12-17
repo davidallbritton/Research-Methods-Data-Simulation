@@ -1,0 +1,255 @@
+---
+title: "Generating Data For Two By Two Between Subjects"
+author: "David Allbritton"
+date: "2024-12-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Create simulated data for a 2x2 fully randomized (all between-subjects) ANOVA design.  The 
+.csv file of simulated data contains a "DV" column of normally distributed (gaussian) data, plus
+a conversion of that data to a 7-point likert scale and a conversion to a 5-point likert scale.
+
+Whenever you "Knit" this .rmd file in Rstudio, it will create a data file called "simulated_data.csv", and
+it will create an .html file that shows some diagnostics and analyses using the simulated data.
+
+```{r}
+################################
+## Define parameters; change this part as needed
+n                  <- 25 # Number of subjects per condition
+Baseline_Mean      <- 10 # Grand mean
+effect_size_A      <- .5  # Effect size for factor A in Cohen's d units
+effect_size_B      <- .5  # Effect size for factor B in Cohen's d units
+effect_size_AB     <- .2  # Effect size for interaction A*B in Cohen's d units
+sd_error           <- 2  # Standard deviation for generating gaussian simulated data
+randseed           <- 0  # if > 0, sets the random number seed for reproducibility; otherwise different data is generated each time
+################################
+```
+
+```{r}
+# scale the effect sizes by the chosen standard deviation; do not change this part
+effect_A      <- effect_size_A * sd_error
+effect_B      <- effect_size_B * sd_error
+effect_AB     <- effect_size_AB * sd_error
+```
+
+```{r}
+if(randseed > 0) set.seed(randseed)
+```
+
+```{r}
+# load libraries and functions
+library(car)
+library(dplyr)
+library(sjstats)
+library(ggplot2)
+
+################
+# function to convert eta squared to d
+# formula:   d = 2 * sqrt(es / (1 - es))
+#   where d = cohen's d, es = eta squared from a two-group design (or a single df contrast)
+eta_sq_to_d <- function(es) {
+  d <- 2 * sqrt(es / (1-es))
+  d
+}
+################
+```
+
+## Generating Data for a 2x2 fully randomized (between subjects) factorial design
+
+First, let's see what gpt4o comes up with for us.  It sort of worked, but I had to 
+adjust the way it handles the interaction term.
+
+```{r}
+# Create a 2x2 factorial design
+simulated_data <- expand.grid(A = c("A1", "A2"), B = c("B1", "B2"))
+simulated_data <- simulated_data[rep(1:nrow(simulated_data), each = n), ]
+simulated_data$Subject <- 1:nrow(simulated_data)
+
+# Generate gaussian data
+simulated_data$DV <- with(simulated_data, {
+  mu <- Baseline_Mean # Baseline mean
+  mu <- mu - (A == "A1") * effect_A /2     # Add effect of A
+  mu <- mu + (A == "A2") * effect_A /2    # Add effect of A
+  mu <- mu - (B == "B1") * effect_B  /2    # Add effect of B
+  mu <- mu + (B == "B2") * effect_B  /2    # Add effect of B
+  mu <- mu - (A == "A1" & B == "B2") * effect_AB /2 # Add interaction
+  mu <- mu + (A == "A2" & B == "B2") * effect_AB /2 # Add interaction
+  mu <- mu + (A == "A1" & B == "B1") * effect_AB /2 # Add interaction
+  mu <- mu - (A == "A2" & B == "B1") * effect_AB /2 # Add interaction
+  rnorm(nrow(simulated_data), mean = mu, sd = sd_error) # Add Gaussian noise
+})
+
+# Convert factors to factor type
+simulated_data$A <- factor(simulated_data$A)
+simulated_data$B <- factor(simulated_data$B)
+```
+
+Add a column of Likert scale ratings (1-7) that could result from the 
+underlying gaussian dv being measured categorically:
+
+```{r}
+# Add a categorical column to the dataset based on evenly spaced intervals
+simulated_data$DV_likert7 <- cut(simulated_data$DV, 
+                                     breaks = seq(min(simulated_data$DV), 
+                                                  max(simulated_data$DV), 
+                                                  length.out = 8), 
+                                     labels = 1:7, 
+                                     include.lowest = TRUE)
+# make it numeric rather than a factor
+simulated_data$DV_likert7 <- as.numeric(as.character(simulated_data$DV_likert7))
+```
+
+Add another column translating it to a 1-5 Likert scale:
+
+```{r}
+# Add a categorical column to the dataset based on evenly spaced intervals
+simulated_data$DV_likert5 <- cut(simulated_data$DV, 
+                                     breaks = seq(min(simulated_data$DV), 
+                                                  max(simulated_data$DV), 
+                                                  length.out = 6), 
+                                     labels = 1:5, 
+                                     include.lowest = TRUE)
+# make it numeric rather than a factor
+simulated_data$DV_likert5 <- as.numeric(as.character(simulated_data$DV_likert5))
+
+# View the updated dataset
+head(simulated_data)
+```
+
+Write the simulated data to a file
+
+```{r}
+# Save the simulated data to a CSV file
+write.csv(simulated_data, file = "simulated_data.csv", row.names = FALSE)
+```
+
+
+Check the cell means of each version of the DV to make sure it looks right:
+
+```{r}
+# Load dplyr
+library(dplyr)
+
+# Calculate cell means and standard deviations for the original gaussian DV
+cell_stats <- simulated_data %>%
+  group_by(A, B) %>%
+  summarize(
+    Mean = mean(DV),
+    SD = sd(DV),
+    .groups = "drop"
+  )
+# Display the results
+print(cell_stats)
+
+# Calculate cell means and standard deviations for the 1-7 likert scale DV
+cell_stats7 <- simulated_data %>%
+  group_by(A, B) %>%
+  summarize(
+    Mean = mean(DV_likert7),
+    SD = sd(DV_likert7),
+    .groups = "drop"
+  )
+# Display the results
+print(cell_stats7)
+
+# Calculate cell means and standard deviations for the 1-5 likert scale DV
+cell_stats5 <- simulated_data %>%
+  group_by(A, B) %>%
+  summarize(
+    Mean = mean(DV_likert5),
+    SD = sd(DV_likert5),
+    .groups = "drop"
+  )
+# Display the results
+print(cell_stats5)
+
+```
+
+
+Great, now let's analyze it, first using the underlying gaussian DV:
+
+```{r}
+library(car)
+
+# Setting contrasts for sum-to-zero coding; type III sums of squares do not work sensibly with the default "treatment" contrasts
+# setting the contrasts option here will set it for the whole session:
+options(contrasts = c("contr.sum", "contr.poly"))
+
+anova_result <- Anova(lm(DV ~ A * B, data = simulated_data), type = "III")
+anova_result
+```
+
+Then do the same analysis using the categorical 1-7 rating scale version of the DV:
+
+```{r}
+# Run the ANOVA
+anova_result7 <- Anova(lm(DV_likert7 ~ A * B, data = simulated_data), type = "III")
+anova_result7
+```
+
+Then do the same analysis using the categorical 1-5 rating scale version of the DV:
+
+```{r}
+# Run the ANOVA
+anova_result5 <- Anova(lm(DV_likert5 ~ A * B, data = simulated_data), type = "III")
+anova_result5
+```
+
+Check the effect sizes in the simulated data.  It turns out empirically that
+using partial eta squared appears to be the right way to calculate Cohen's d
+so that it can be compared to the effect sizes we used to generate the data.  
+With a large N calculating d from partial eta squared reproduces the input effect sizes exactly.  I can't tell you 
+why partial eta squared is the right choice instead of eta squared, but empirically
+it appears that it is the right choice.
+
+```{r}
+library(sjstats)
+# Extract effect sizes
+eta_squared <- effectsize::eta_squared(anova_result, partial = FALSE) # Full Eta-squared
+partial_eta_squared <- effectsize::eta_squared(anova_result, partial = TRUE) # Partial Eta-squared
+
+# add a column for Cohen's d and display the results
+#effectSizes <- eta_squared
+#effectSizes <- effectSizes %>% mutate(d = eta_sq_to_d(Eta2))  # using the previously defined function
+#effectSizes
+```
+
+Effect sizes that were actually used to generate the simulated data
+
+```{r echo=T}
+# print the actual effect sizes that were used to generate the simulated data:
+print(effect_size_A)
+print(effect_size_B)
+print(effect_size_AB)
+```
+
+Effect sizes observed in analysis of the simulated data 
+
+```{r}
+effectSizes2 <- partial_eta_squared
+effectSizes2 <- effectSizes2 %>% mutate(d = eta_sq_to_d(Eta2_partial))  # using the previously defined function
+effectSizes2
+```
+
+
+```{r}
+cell_stats
+simulated_data$DV %>% mean()
+```
+
+
+```{r}
+simulated_data %>%
+  select(A, B, DV) %>%
+  ggplot(aes(x = A, y = DV, color = B, group = B)) + 
+  stat_summary(fun = mean, geom = "line", size = 1) +  # Lines connecting group means
+  stat_summary(fun = mean, geom = "point", size = 3) +
+  theme_minimal()
+
+```
+
+
