@@ -1,9 +1,11 @@
 library(shiny)
+library(shinythemes)
 library(ggplot2)
 library(dplyr)
 library(car)
 library(effectsize)
 library(sjstats)
+# library(DT)
 
 #######  Define custom functions #######
 effect_direction <- function(data, effect) {
@@ -42,18 +44,20 @@ effect_direction <- function(data, effect) {
 #################
 
 ui <- fluidPage(
+  theme = shinytheme("cerulean"),
+  
   titlePanel("2x2 Between-Subjects Data Simulation"),
   
   sidebarLayout(
     sidebarPanel(
+      actionButton("generate", "Generate Data"),
       numericInput("n", "Number of subjects per condition:", value = 25, min = 1),
       numericInput("baseline_mean", "Grand Mean:", value = 10),
       numericInput("effect_size_A", "Effect size for Factor A (Cohen's d):", value = 0.5),
-      numericInput("effect_size_B", "Effect size for Factor B (Cohen's d):", value = 0.5),
+      numericInput("effect_size_B", "Effect size for Factor B (Cohen's d):", value = -0.5),
       numericInput("effect_size_AB", "Effect size for Interaction (Cohen's d):", value = 0.2),
-      numericInput("sd_error", "Standard deviation of error:", value = 2),
-      numericInput("randseed", "Random seed (0 for random):", value = 0),
-      actionButton("generate", "Generate Data")
+      numericInput("sd_error", "Standard deviation:", value = 1),
+      numericInput("randseed", "Random seed (0 for random):", value = 0)
     ),
     
     mainPanel(
@@ -61,7 +65,7 @@ ui <- fluidPage(
         tabPanel("Simulated Data", 
                  downloadButton("download_data", "Download Data"),
                  br(), br(),
-                 tableOutput("data_table")
+                 DT::dataTableOutput("data_table")
         ),
         
         tabPanel("Cell Means", tableOutput("cell_means")),
@@ -102,8 +106,12 @@ server <- function(input, output) {
     simulated_data
   })
   
-  output$data_table <- renderTable({
-    head(generate_data(), 30)
+  # output$data_table <- renderTable({
+  #   head(generate_data(), 30)
+  # })
+  
+  output$data_table <- DT::renderDataTable({
+    DT::datatable(generate_data(), options = list(pageLength = 10))
   })
   
   output$download_data <- downloadHandler(

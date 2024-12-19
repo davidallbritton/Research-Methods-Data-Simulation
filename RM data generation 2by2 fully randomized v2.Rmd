@@ -21,7 +21,7 @@ it will create an .html file that shows some diagnostics and analyses using the 
 ## Define parameters; change this part as needed
 n                  <- 25 # Number of subjects per condition
 Baseline_Mean      <- 10 # Grand mean
-effect_size_A      <- .5  # Effect size for factor A in Cohen's d units
+effect_size_A      <- -.5  # Effect size for factor A in Cohen's d units
 effect_size_B      <- .5  # Effect size for factor B in Cohen's d units
 effect_size_AB     <- .2  # Effect size for interaction A*B in Cohen's d units
 sd_error           <- 2  # Standard deviation for generating gaussian simulated data
@@ -47,6 +47,8 @@ library(dplyr)
 library(sjstats)
 library(ggplot2)
 
+#######  Define custom functions #######
+
 ################
 # function to convert eta squared to d
 # formula:   d = 2 * sqrt(es / (1 - es))
@@ -55,7 +57,43 @@ eta_sq_to_d <- function(es) {
   d <- 2 * sqrt(es / (1-es))
   d
 }
+
 ################
+
+effect_direction <- function(data, effect) {
+  # Ensure valid effect input
+  if (!effect %in% c("A", "B", "AB")) {
+    stop("Effect must be one of 'A', 'B', or 'AB'")
+  }
+  
+  # For main effect of A
+  if (effect == "A") {
+    mean_A1 <- mean(data$DV[data$A == "A1"])
+    mean_A2 <- mean(data$DV[data$A == "A2"])
+    return(ifelse(mean_A1 <= mean_A2, 1, -1))
+  }
+  
+  # For main effect of B
+  if (effect == "B") {
+    mean_B1 <- mean(data$DV[data$B == "B1"])
+    mean_B2 <- mean(data$DV[data$B == "B2"])
+    return(ifelse(mean_B1 <= mean_B2, 1, -1))
+  }
+  
+  # For interaction effect AB
+  if (effect == "AB") {
+    mean_A1B1 <- mean(data$DV[data$A == "A1" & data$B == "B1"])
+    mean_A1B2 <- mean(data$DV[data$A == "A1" & data$B == "B2"])
+    mean_A2B1 <- mean(data$DV[data$A == "A2" & data$B == "B1"])
+    mean_A2B2 <- mean(data$DV[data$A == "A2" & data$B == "B2"])
+    
+    interaction_A1 <- mean_A1B2 - mean_A1B1
+    interaction_A2 <- mean_A2B2 - mean_A2B1
+    
+    return(ifelse(interaction_A2 >= interaction_A1, 1, -1))
+  }
+}
+#################
 ```
 
 ## Generating Data for a 2x2 fully randomized (between subjects) factorial design
@@ -233,6 +271,20 @@ Effect sizes observed in analysis of the simulated data
 effectSizes2 <- partial_eta_squared
 effectSizes2 <- effectSizes2 %>% mutate(d = eta_sq_to_d(Eta2_partial))  # using the previously defined function
 effectSizes2
+
+    # determine whether effect sizes are positive or negative
+    data <- simulated_data
+    partial_eta <- effectSizes2
+    sign_A <- effect_direction(data, "A")
+    sign_B <- effect_direction(data, "B")
+    sign_AB <- effect_direction(data, "AB")
+    signs <- c(sign_A, sign_B, sign_AB)
+    partial_eta$signs <- signs
+    partial_eta <- partial_eta %>% mutate(d = signs * 2 * sqrt(Eta2_partial / (1 - Eta2_partial)))
+    # re-read the inputs for the true effect sizes
+      true_ds <- c(effect_size_A, effect_size_B, effect_size_AB)
+    partial_eta$"True d" <- true_ds
+    partial_eta %>% select(Parameter,	Eta2_partial,	d, "True d")
 ```
 
 
