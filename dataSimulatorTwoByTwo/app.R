@@ -51,14 +51,28 @@ add_likert <- function(df, scale_length){
   n <- scale_length
   cname <- paste0("DV_likert", n)
   df[[cname]] <- cut(df$DV, 
-                                   breaks = seq(min(df$DV), 
-                                                max(df$DV), 
-                                                length.out = n+1), 
-                                   labels = 1:n, 
-                                   include.lowest = TRUE)
+                     breaks = seq(min(df$DV), 
+                                  max(df$DV), 
+                                  length.out = n+1), 
+                     labels = 1:n, 
+                     include.lowest = TRUE)
   # make it numeric rather than a factor
   df[[cname]] <- as.numeric(as.character(df[[cname]]))
   df
+}
+
+create_analysis_tab <- function(data_column, tab_name) {
+  tabPanel(
+    tab_name,
+    fluidRow(
+      column(6, tableOutput(paste0(data_column, "_cell_means"))),
+      column(6, p(em("Effect Sizes:")), tableOutput(paste0(data_column, "_effect_sizes")))
+    ),
+    fluidRow(
+      column(6, plotOutput(paste0(data_column, "_diagnostic_plot"), height = "250px")),
+      column(6, verbatimTextOutput(paste0(data_column, "_anova_results")))
+    )
+  )
 }
 
 #################
@@ -67,7 +81,7 @@ ui <- fluidPage(
   theme = shinytheme("cerulean"),
   
   titlePanel("Generating Simulated Data for a 2x2 between-subjects design"),
-
+  
   sidebarLayout(
     sidebarPanel(
       actionButton("generate", "Generate Data"),
@@ -88,17 +102,7 @@ ui <- fluidPage(
                  br(), br(),
                  DT::dataTableOutput("data_table")
         ),
-        
-        tabPanel("Analysis of DV",
-                 fluidRow(
-                   column(6, tableOutput("cell_means")),
-                   column(6, p(em("Effect Sizes:")), tableOutput("effect_sizes"))
-                 ),
-                 fluidRow(
-                   column(6, plotOutput("diagnostic_plot", height = "250px")),
-                   column(6, verbatimTextOutput("anova_results"))
-                 )
-        )
+        create_analysis_tab("DV", "Analysis of DV")
       )
     )
   )
@@ -157,47 +161,43 @@ server <- function(input, output) {
     }
   )
   
-  output$cell_means <- renderTable({
-    generate_data() %>%
-      group_by(A, B) %>%
-      summarize(Mean = mean(DV), SD = sd(DV), .groups = "drop")
-  })
-  
-  output$anova_results <- renderPrint({
-    data <- generate_data()
-    options(contrasts = c("contr.sum", "contr.poly"))
-    anova_result <- Anova(lm(DV ~ A * B, data = data), type = "III")
-    print(anova_result)
-  })
-  
-  output$effect_sizes <- renderTable({
+  observeEvent(input$generate, {
     data <- generate_data()
     
-    options(contrasts = c("contr.sum", "contr.poly"))
-    anova_result <- Anova(lm(DV ~ A * B, data = data), type = "III")
-    partial_eta <- eta_squared(anova_result, partial = TRUE)
-    # determine whether effect sizes are positive or negative
-    sign_A <- effect_direction(data, "A")
-    sign_B <- effect_direction(data, "B")
-    sign_AB <- effect_direction(data, "AB")
-    signs <- c(sign_A, sign_B, sign_AB)
-    partial_eta$signs <- signs
-    partial_eta <- partial_eta %>% mutate(d = signs * 2 * sqrt(Eta2_partial / (1 - Eta2_partial)))
-    # re-read the inputs for the true effect sizes
-    isolate(
+    output$DV_cell_means <- renderTable({
+      data %>%
+        group_by(A, B) %>%
+        summarize(Mean = mean(DV), SD = sd(DV), .groups = "drop")
+    })
+    
+    output$DV_anova_results <- renderPrint({
+      options(contrasts = c("contr.sum", "contr.poly"))
+      anova_result <- Anova(lm(DV ~ A * B, data = data), type = "III")
+      print(anova_result)
+    })
+    
+    output$DV_effect_sizes <- renderTable({
+      options(contrasts = c("contr.sum", "contr.poly"))
+      anova_result <- Anova(lm(DV ~ A * B, data = data), type = "III")
+      partial_eta <- eta_squared(anova_result, partial = TRUE)
+      sign_A <- effect_direction(data, "A")
+      sign_B <- effect_direction(data, "B")
+      sign_AB <- effect_direction(data, "AB")
+      signs <- c(sign_A, sign_B, sign_AB)
+      partial_eta$signs <- signs
+      partial_eta <- partial_eta %>% mutate(d = signs * 2 * sqrt(Eta2_partial / (1 - Eta2_partial)))
       true_ds <- c(input$effect_size_A, input$effect_size_B, input$effect_size_AB)
-    )
-    partial_eta$"True d" <- true_ds
-    partial_eta %>% select(Parameter,	Eta2_partial,	d, "True d")
-  })
-  
-  output$diagnostic_plot <- renderPlot({
-    data <- generate_data()
-    ggplot(data, aes(x = A, y = DV, color = B, group = B)) + 
-      stat_summary(fun = mean, geom = "line", size = 1) + 
-      stat_summary(fun = mean, geom = "point", size = 3) + 
-      theme_minimal() +
-      labs(title = "Group Means for DV", x = "Factor A", y = "Dependent Variable (DV)")
+      partial_eta$"True d" <- true_ds
+      partial_eta %>% select(Parameter, Eta2_partial, d, "True d")
+    })
+    
+    output$DV_diagnostic_plot <- renderPlot({
+      ggplot(data, aes(x = A, y = DV, color = B, group = B)) + 
+        stat_summary(fun = mean, geom = "line", size = 1) + 
+        stat_summary(fun = mean, geom = "point", size = 3) + 
+        theme_minimal() +
+        labs(title = "Group Means for DV", x = "Factor A", y = "Dependent Variable (DV)")
+    })
   })
 }
 
