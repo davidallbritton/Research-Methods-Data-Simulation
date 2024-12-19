@@ -6,6 +6,7 @@ library(car)
 library(effectsize)
 library(sjstats)
 # library(DT)  # referenced directly with :: rather than loaded as a library
+# library(scales) # referenced directly but not loaded
 # library(shinydashboard)  # maybe try using for a different format sometime?
 
 #######  Define custom functions #######
@@ -112,7 +113,24 @@ render_analysis_outputs <- function(output, input, data, column_name) {
   })
 }
 
-#################
+## Function to simulate reaction time data from Gaussian data input
+transform_to_simulated_RT <- function(df, input_column_name, output_column_name, min_RT, max_RT) {
+  # Shift the Gaussian data to ensure all values are positive
+  shift <- abs(min(df[[input_column_name]])) + 1  # Ensure all values are > 0
+  shifted_data <- df[[input_column_name]] + shift
+  
+  # Apply the log transformation
+  df[[output_column_name]] <- log(shifted_data)
+  
+  # Rescale the data to a realistic range for reaction times
+  df[[output_column_name]] <- scales::rescale(df[[output_column_name]], to = c(min_RT, max_RT))
+  
+  # Return the modified dataframe
+  return(df)
+}
+
+
+#################   End of custom functions
 
 ui <- fluidPage(
   theme = shinytheme("cerulean"),
@@ -141,6 +159,8 @@ ui <- fluidPage(
         ),
         create_analysis_tab("DV", "Analysis of DV"),
         create_analysis_tab("DV_likert7", "Analysis of DV_likert7"),
+        create_analysis_tab("DV_likert5", "Analysis of DV_likert5"),
+        create_analysis_tab("DV_rt", "Analysis of DV_rt"),
         tabPanel("Explanation", "Some text.")
       )
     )
@@ -183,8 +203,12 @@ server <- function(input, output) {
     # Generate gaussian data for DV from column "mu" of the dataframe "simulated_data"
     simulated_data$DV <- rnorm(nrow(simulated_data), mean = simulated_data[["mu"]], sd = sd_error) # Add Gaussian noise
     
+    # Generate likert scale data
     simulated_data <- add_likert(simulated_data, 7)
     simulated_data <- add_likert(simulated_data, 5)
+    
+    # Generate reaction time data
+    simulated_data <- transform_to_simulated_RT(simulated_data, "DV", "DV_rt", 200, 800)
     
     simulated_data
   })
@@ -204,6 +228,8 @@ server <- function(input, output) {
     data <- generate_data()
     render_analysis_outputs(output, input, data, "DV")
     render_analysis_outputs(output, input, data, "DV_likert7")
+    render_analysis_outputs(output, input, data, "DV_likert5")
+    render_analysis_outputs(output, input, data, "DV_rt")
   })
 }
 
