@@ -5,10 +5,13 @@ library(dplyr)
 library(car)
 library(effectsize)
 library(sjstats)
-# library(DT)
+# library(DT)  # referenced directly with :: rather than loaded as a library
+# library(shinydashboard)  # maybe try using for a different format sometime?
 
 #######  Define custom functions #######
-effect_direction <- function(data, effect) {
+
+## determine whether the effect size d should be positive or negative:
+effect_direction <- function(data, effect) { 
   # Ensure valid effect input
   if (!effect %in% c("A", "B", "AB")) {
     stop("Effect must be one of 'A', 'B', or 'AB'")
@@ -41,13 +44,30 @@ effect_direction <- function(data, effect) {
     return(ifelse(interaction_A2 >= interaction_A1, 1, -1))
   }
 }
+
+## Add a column to the simulated data with likert ratings from 1 to [scale_length]
+# The dataframe df must contain a column "DV" that contains gaussian (normal) data
+add_likert <- function(df, scale_length){
+  n <- scale_length
+  cname <- paste0("DV_likert", n)
+  df[[cname]] <- cut(df$DV, 
+                                   breaks = seq(min(df$DV), 
+                                                max(df$DV), 
+                                                length.out = n+1), 
+                                   labels = 1:n, 
+                                   include.lowest = TRUE)
+  # make it numeric rather than a factor
+  df[[cname]] <- as.numeric(as.character(df[[cname]]))
+  df
+}
+
 #################
 
 ui <- fluidPage(
   theme = shinytheme("cerulean"),
   
-  titlePanel("2x2 Between-Subjects Data Simulation"),
-  
+  titlePanel("Generating Simulated Data for a 2x2 between-subjects design"),
+
   sidebarLayout(
     sidebarPanel(
       actionButton("generate", "Generate Data"),
@@ -57,7 +77,8 @@ ui <- fluidPage(
       numericInput("effect_size_B", "Effect size for Factor B (Cohen's d):", value = -0.5),
       numericInput("effect_size_AB", "Effect size for Interaction (Cohen's d):", value = 0.2),
       numericInput("sd_error", "Standard deviation:", value = 1),
-      numericInput("randseed", "Random seed (0 for random):", value = 0)
+      numericInput("randseed", "Random seed (0 for random):", value = 0),
+      width = 3
     ),
     
     mainPanel(
@@ -68,10 +89,16 @@ ui <- fluidPage(
                  DT::dataTableOutput("data_table")
         ),
         
-        tabPanel("Cell Means", tableOutput("cell_means")),
-        tabPanel("ANOVA Results", verbatimTextOutput("anova_results")),
-        tabPanel("Effect Sizes", tableOutput("effect_sizes")),
-        tabPanel("Plot", plotOutput("diagnostic_plot"))
+        tabPanel("Analysis of DV",
+                 fluidRow(
+                   column(6, tableOutput("cell_means")),
+                   column(6, p(em("Effect Sizes:")), tableOutput("effect_sizes"))
+                 ),
+                 fluidRow(
+                   column(6, plotOutput("diagnostic_plot", height = "250px")),
+                   column(6, verbatimTextOutput("anova_results"))
+                 )
+        )
       )
     )
   )
@@ -88,27 +115,36 @@ server <- function(input, output) {
     
     if (input$randseed > 0) set.seed(input$randseed)
     
-    simulated_data <- expand.grid(A = c("A1", "A2"), B = c("B1", "B2"))
+    # create rows for subjects and columns for IVs A and B
+    simulated_data <- expand.grid(Subject = 0, A = c("A1", "A2"), B = c("B1", "B2"))
     simulated_data <- simulated_data[rep(1:nrow(simulated_data), each = n), ]
     simulated_data$Subject <- 1:nrow(simulated_data)
     
-    simulated_data$DV <- with(simulated_data, {
+    # generate the "true means" mu for each subject
+    simulated_data$mu <- with(simulated_data, {
       mu <- Baseline_Mean
+      # Explanation of how these statements change the mean mu, using (A == "A1") as an example:
+      # Note that (A == "A1") will be 1 if true, 0 if false.  So the mean mu will
+      # only be changed by subtracting half of effect_A on rows where (A == "A1") is true.
       mu <- mu - (A == "A1") * effect_A / 2 + (A == "A2") * effect_A / 2
       mu <- mu - (B == "B1") * effect_B / 2 + (B == "B2") * effect_B / 2
       mu <- mu - (A == "A1" & B == "B2") * effect_AB / 2 + (A == "A2" & B == "B2") * effect_AB / 2
       mu <- mu + (A == "A1" & B == "B1") * effect_AB / 2 - (A == "A2" & B == "B1") * effect_AB / 2
-      rnorm(nrow(simulated_data), mean = mu, sd = sd_error)
+      mu
     })
     
+    # these need to be factors rather than numbers:
     simulated_data$A <- factor(simulated_data$A)
     simulated_data$B <- factor(simulated_data$B)
+    
+    # Generate gaussian data for DV from column "mu" of the dataframe "simulated_data"
+    simulated_data$DV <- rnorm(nrow(simulated_data), mean = simulated_data[["mu"]], sd = sd_error) # Add Gaussian noise
+    
+    simulated_data <- add_likert(simulated_data, 7)
+    simulated_data <- add_likert(simulated_data, 5)
+    
     simulated_data
   })
-  
-  # output$data_table <- renderTable({
-  #   head(generate_data(), 30)
-  # })
   
   output$data_table <- DT::renderDataTable({
     DT::datatable(generate_data(), options = list(pageLength = 10))

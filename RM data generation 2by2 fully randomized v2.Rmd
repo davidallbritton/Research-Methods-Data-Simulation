@@ -22,7 +22,7 @@ it will create an .html file that shows some diagnostics and analyses using the 
 n                  <- 25 # Number of subjects per condition
 Baseline_Mean      <- 10 # Grand mean
 effect_size_A      <- -.5  # Effect size for factor A in Cohen's d units
-effect_size_B      <- .5  # Effect size for factor B in Cohen's d units
+effect_size_B      <- 1.1  # Effect size for factor B in Cohen's d units
 effect_size_AB     <- .2  # Effect size for interaction A*B in Cohen's d units
 sd_error           <- 2  # Standard deviation for generating gaussian simulated data
 randseed           <- 0  # if > 0, sets the random number seed for reproducibility; otherwise different data is generated each time
@@ -107,8 +107,8 @@ simulated_data <- expand.grid(A = c("A1", "A2"), B = c("B1", "B2"))
 simulated_data <- simulated_data[rep(1:nrow(simulated_data), each = n), ]
 simulated_data$Subject <- 1:nrow(simulated_data)
 
-# Generate gaussian data
-simulated_data$DV <- with(simulated_data, {
+# Generate "true" cell means for mu:
+simulated_data$mu <- with(simulated_data, {
   mu <- Baseline_Mean # Baseline mean
   mu <- mu - (A == "A1") * effect_A /2     # Add effect of A
   mu <- mu + (A == "A2") * effect_A /2    # Add effect of A
@@ -118,8 +118,12 @@ simulated_data$DV <- with(simulated_data, {
   mu <- mu + (A == "A2" & B == "B2") * effect_AB /2 # Add interaction
   mu <- mu + (A == "A1" & B == "B1") * effect_AB /2 # Add interaction
   mu <- mu - (A == "A2" & B == "B1") * effect_AB /2 # Add interaction
-  rnorm(nrow(simulated_data), mean = mu, sd = sd_error) # Add Gaussian noise
+  mu
 })
+
+# Generate gaussian data for DV from column "mu" of the dataframe "simulated_data"
+simulated_data$DV <- rnorm(nrow(simulated_data), mean = simulated_data[["mu"]], sd = sd_error) # Add Gaussian noise
+
 
 # Convert factors to factor type
 simulated_data$A <- factor(simulated_data$A)
