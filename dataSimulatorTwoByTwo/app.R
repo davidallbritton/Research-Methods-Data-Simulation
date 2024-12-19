@@ -75,6 +75,43 @@ create_analysis_tab <- function(data_column, tab_name) {
   )
 }
 
+render_analysis_outputs <- function(output, input, data, column_name) {
+  output[[paste0(column_name, "_cell_means")]] <- renderTable({
+    data %>%
+      group_by(A, B) %>%
+      summarize(Mean = mean(.data[[column_name]]), SD = sd(.data[[column_name]]), .groups = "drop")
+  })
+  
+  output[[paste0(column_name, "_anova_results")]] <- renderPrint({
+    options(contrasts = c("contr.sum", "contr.poly"))
+    anova_result <- Anova(lm(reformulate(c("A", "B", "A:B"), response = column_name), data = data), type = "III")
+    print(anova_result)
+  })
+  
+  output[[paste0(column_name, "_effect_sizes")]] <- renderTable({
+    options(contrasts = c("contr.sum", "contr.poly"))
+    anova_result <- Anova(lm(reformulate(c("A", "B", "A:B"), response = column_name), data = data), type = "III")
+    partial_eta <- eta_squared(anova_result, partial = TRUE)
+    sign_A <- effect_direction(data, "A")
+    sign_B <- effect_direction(data, "B")
+    sign_AB <- effect_direction(data, "AB")
+    signs <- c(sign_A, sign_B, sign_AB)
+    partial_eta$signs <- signs
+    partial_eta <- partial_eta %>% mutate(d = signs * 2 * sqrt(Eta2_partial / (1 - Eta2_partial)))
+    true_ds <- c(input$effect_size_A, input$effect_size_B, input$effect_size_AB)
+    partial_eta$"True d" <- true_ds
+    partial_eta %>% select(Parameter, Eta2_partial, d, "True d")
+  })
+  
+  output[[paste0(column_name, "_diagnostic_plot")]] <- renderPlot({
+    ggplot(data, aes(x = A, y = .data[[column_name]], color = B, group = B)) + 
+      stat_summary(fun = mean, geom = "line", size = 1) + 
+      stat_summary(fun = mean, geom = "point", size = 3) + 
+      theme_minimal() +
+      labs(title = paste("Group Means for", column_name), x = "Factor A", y = column_name)
+  })
+}
+
 #################
 
 ui <- fluidPage(
@@ -163,41 +200,7 @@ server <- function(input, output) {
   
   observeEvent(input$generate, {
     data <- generate_data()
-    
-    output$DV_cell_means <- renderTable({
-      data %>%
-        group_by(A, B) %>%
-        summarize(Mean = mean(DV), SD = sd(DV), .groups = "drop")
-    })
-    
-    output$DV_anova_results <- renderPrint({
-      options(contrasts = c("contr.sum", "contr.poly"))
-      anova_result <- Anova(lm(DV ~ A * B, data = data), type = "III")
-      print(anova_result)
-    })
-    
-    output$DV_effect_sizes <- renderTable({
-      options(contrasts = c("contr.sum", "contr.poly"))
-      anova_result <- Anova(lm(DV ~ A * B, data = data), type = "III")
-      partial_eta <- eta_squared(anova_result, partial = TRUE)
-      sign_A <- effect_direction(data, "A")
-      sign_B <- effect_direction(data, "B")
-      sign_AB <- effect_direction(data, "AB")
-      signs <- c(sign_A, sign_B, sign_AB)
-      partial_eta$signs <- signs
-      partial_eta <- partial_eta %>% mutate(d = signs * 2 * sqrt(Eta2_partial / (1 - Eta2_partial)))
-      true_ds <- c(input$effect_size_A, input$effect_size_B, input$effect_size_AB)
-      partial_eta$"True d" <- true_ds
-      partial_eta %>% select(Parameter, Eta2_partial, d, "True d")
-    })
-    
-    output$DV_diagnostic_plot <- renderPlot({
-      ggplot(data, aes(x = A, y = DV, color = B, group = B)) + 
-        stat_summary(fun = mean, geom = "line", size = 1) + 
-        stat_summary(fun = mean, geom = "point", size = 3) + 
-        theme_minimal() +
-        labs(title = "Group Means for DV", x = "Factor A", y = "Dependent Variable (DV)")
-    })
+    render_analysis_outputs(output, input, data, "DV")
   })
 }
 
