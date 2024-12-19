@@ -139,7 +139,9 @@ ui <- fluidPage(
                  br(), br(),
                  DT::dataTableOutput("data_table")
         ),
-        create_analysis_tab("DV", "Analysis of DV")
+        create_analysis_tab("DV", "Analysis of DV"),
+        create_analysis_tab("DV_likert7", "Analysis of DV_likert7"),
+        tabPanel("Explanation", "Some text.")
       )
     )
   )
@@ -201,6 +203,7 @@ server <- function(input, output) {
   observeEvent(input$generate, {
     data <- generate_data()
     render_analysis_outputs(output, input, data, "DV")
+    render_analysis_outputs(output, input, data, "DV_likert7")
   })
 }
 
