@@ -5,8 +5,8 @@ library(dplyr)
 library(car)
 library(effectsize)
 library(sjstats)
-library(DT)  # referenced directly with :: rather than loaded as a library
-library(scales) # referenced directly but not loaded
+# library(DT)  # referenced directly with :: rather than loaded as a library
+# library(scales) # referenced directly but not loaded
 # library(shinydashboard)  # not used. maybe try using for a different format sometime?
 
 ##############################################
@@ -133,15 +133,11 @@ render_analysis_outputs <- function(output, input, data, column_name) {
 ###########
 ## Function to simulate reaction time data from Gaussian data input
 transform_to_simulated_RT <- function(df, input_column_name, output_column_name, min_RT, max_RT) {
-  # Create the ECDF function that gives quantile-like continuous values
-  F <- ecdf(df[[input_column_name]])
-  # get "quantile-like" values for every data point
-  quantile_ranks <- F(df[[input_column_name]])
+  x <- df[[input_column_name]]
+  # give it a right-skew
+  y <- scales::rescale(x, to = c(0, 2.5))
+  y <- exp(y)
   
-  # rescale the input values into the range of -1 to 1
-  y <- scales::rescale(df[[input_column_name]], to = c(-1, 1))
-  # stretch the distribution out on the right and compress it on the left
-  y <- y * (.5 + quantile_ranks)
   # rescale it to range from min_RT to max_RT
   y <- scales::rescale(y, to = c(min_RT, max_RT))
   
@@ -218,7 +214,7 @@ ui <- fluidPage(
             "ways, by switching between output tabs. The trade-off is that",
             "the transformed versions of the dependent variable may have",
             "distributions that are different from real data. The reaction",
-            "time variable DV_rt, for example, is a custom transformation of the",
+            "time variable DV_rt, for example, is an exponential transformation of the",
             "gaussian DV that makes it right-skewed. But more realistic reaction time distributions",
             "might result from instead using the R rinvgauss function for",
             "randomly generating inverse gaussian data. The tradeoff is that",
