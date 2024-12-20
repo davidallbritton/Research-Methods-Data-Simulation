@@ -12,6 +12,7 @@ library(sjstats)
 ##############################################
 #######  Define custom functions #######
 
+###########
 ## determine whether the effect size d should be positive or negative:
 effect_direction <- function(data, effect) { 
   # Ensure valid effect input
@@ -47,6 +48,7 @@ effect_direction <- function(data, effect) {
   }
 }
 
+###########
 ## Add a column to the simulated data with likert ratings from 1 to [scale_length]
 # The dataframe df must contain a column "DV" that contains gaussian (normal) data
 add_likert <- function(df, scale_length){
@@ -63,6 +65,7 @@ add_likert <- function(df, scale_length){
   df
 }
 
+###########
 create_analysis_tab <- function(data_column, tab_name) {
   tabPanel(
     tab_name,
@@ -77,6 +80,7 @@ create_analysis_tab <- function(data_column, tab_name) {
   )
 }
 
+###########
 render_analysis_outputs <- function(output, input, data, column_name) {
   output[[paste0(column_name, "_cell_means")]] <- renderTable({
     summary_data <- data %>%
@@ -126,6 +130,7 @@ render_analysis_outputs <- function(output, input, data, column_name) {
   })
 }
 
+###########
 ## Function to simulate reaction time data from Gaussian data input
 transform_to_simulated_RT <- function(df, input_column_name, output_column_name, min_RT, max_RT) {
   # Shift the Gaussian data to ensure all values are positive
