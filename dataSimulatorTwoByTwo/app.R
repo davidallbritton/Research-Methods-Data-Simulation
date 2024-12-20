@@ -7,8 +7,9 @@ library(effectsize)
 library(sjstats)
 # library(DT)  # referenced directly with :: rather than loaded as a library
 # library(scales) # referenced directly but not loaded
-# library(shinydashboard)  # maybe try using for a different format sometime?
+# library(shinydashboard)  # not used. maybe try using for a different format sometime?
 
+##############################################
 #######  Define custom functions #######
 
 ## determine whether the effect size d should be positive or negative:
@@ -78,9 +79,21 @@ create_analysis_tab <- function(data_column, tab_name) {
 
 render_analysis_outputs <- function(output, input, data, column_name) {
   output[[paste0(column_name, "_cell_means")]] <- renderTable({
-    data %>%
+    summary_data <- data %>%
       group_by(A, B) %>%
-      summarize(Mean = mean(.data[[column_name]]), SD = sd(.data[[column_name]]), .groups = "drop")
+      summarize(
+        Mean = mean(.data[[column_name]]),
+        SD = sd(.data[[column_name]]),
+        mu = mean(.data[["mu"]]),
+        .groups = "drop"
+      )
+    #
+    if (column_name != "DV") {
+      summary_data <- summary_data %>%
+        select(-mu)
+    }
+    #
+    summary_data
   })
   
   output[[paste0(column_name, "_anova_results")]] <- renderPrint({
@@ -129,9 +142,9 @@ transform_to_simulated_RT <- function(df, input_column_name, output_column_name,
   return(df)
 }
 
-
 #################   End of custom functions
 
+##############################################
 ui <- fluidPage(
   theme = shinytheme("cerulean"),
   
@@ -161,12 +174,87 @@ ui <- fluidPage(
         create_analysis_tab("DV_likert7", "Analysis of DV_likert7"),
         create_analysis_tab("DV_likert5", "Analysis of DV_likert5"),
         create_analysis_tab("DV_rt", "Analysis of DV_rt"),
-        tabPanel("Explanation", "Some text.")
+        
+        tabPanel(
+          "Explanation",
+          p("This app generates simulated data for a 2x2 fully randomized",
+            "(all between-subjects) design. It also shows some analyses for",
+            "the simulated data. The first output panel shows the entire",
+            "simulated dataset and has a button for downloading the simulated",
+            "data as a .csv file. Each of the other output panels shows",
+            "analyses of a different version of the simulated dependent",
+            "variable."
+          ),
+          p("The first version of the simulated dependent variable is",
+            "labeled DV. DV is a gaussian (normally distributed) variable",
+            "created using the R function rnorm. The values for N, means,",
+            "and standard deviation that are passed to rnorm are based on the",
+            "user input in the left sidebar. Each of the other output panels",
+            "shows another simulated dependent variable that was created by",
+            "transforming DV. Thus, each time the user presses the button to",
+            "generate a new dataset, a new set of simulated data points are",
+            "generated for DV, and then all the other dependent variables are",
+            "created by transforming those simulated data points. The",
+            "versions of the dependent variable currently implemented are:"
+          ),
+          tags$ul(
+            tags$li("DV - gaussian (normally distributed)"),
+            tags$li("DV_likert7 - A 7-point scale"),
+            tags$li("DV_likert5 - A 5-point scale"),
+            tags$li("DV_rt - A reaction time measure ranging from roughly",
+                    "200 to 800 milliseconds")
+          ),
+          p("Using a single random generation process (rnorm) to produce all",
+            "of the dependent variables makes it possible to easily compare",
+            "what the 'same' sample looks like when measured in different",
+            "ways, by switching between output tabs. The trade-off is that",
+            "the transformed versions of the dependent variable may have",
+            "distributions that are different from real data. The reaction",
+            "time variable DV_rt, for example, is a log transform of the",
+            "gaussian DV. But more realistic reaction time distributions",
+            "might result from instead using the R rinvgauss function for",
+            "randomly generating inverse gaussian data. The tradeoff is that",
+            "using a separate random data generation process for DV_rt would",
+            "mean that DV_rt would have different sample means and subject",
+            "deviations than DV -- they would no longer refer to the 'same'",
+            "(simulated) sample, in other words. The way it is currently",
+            "implemented, on the other hand, allows the user to think of each",
+            "press of 'generate' as drawing a single sample, and each",
+            "analysis tab as what the results might look like for that sample",
+            "if it were measured in different ways."
+          ),
+          p("Most of the output panel content is self-explanatory, but a few",
+            "things are worth noting. The effect size section displays the",
+            "partial eta squared ('Eta2_partial') calculated from the ANOVA",
+            "output. Cohen’s d ('d') is then calculated from the partial eta",
+            "squared. Recall that 'd' is the size of the difference between",
+            "two means in standard deviation units, and 'd' is how the user",
+            "specifies the main effect and interaction effect sizes that are",
+            "used to generate the simulated data."
+          ),
+          p("All the results in the output panels are based on the simulated",
+            "sample of data, except the columns labeled 'mu' and 'True d'.",
+            "'mu' is the 'true' cell means that were used to generate the",
+            "simulated data (shown only for the gaussian variable DV). The",
+            "'mu' for each cell of the design is determined from the",
+            "user-specified grand mean and effect sizes. 'True d' is the",
+            "effect size that was specified by the user. Comparing 'mu' to",
+            "observed sample data cell means, and 'True d' to the observed",
+            "sample data effect size 'd' allows the user to easily see the",
+            "effects of sampling error. Repeatedly clicking 'generate' with",
+            "various values of N and observing the fluctuation of the sample",
+            "means and effect sizes may be a useful exercise to temper one’s",
+            "enthusiasm about 'significant' results from small sample sizes."
+          ),
+          p("By David Allbritton, 2024")
+        )
+
       )
     )
   )
 )
 
+##############################################
 server <- function(input, output) {
   generate_data <- eventReactive(input$generate, {
     n <- input$n
