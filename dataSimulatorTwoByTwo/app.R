@@ -5,8 +5,8 @@ library(dplyr)
 library(car)
 library(effectsize)
 library(sjstats)
-# library(DT)  # referenced directly with :: rather than loaded as a library
-# library(scales) # referenced directly but not loaded
+library(DT)  # referenced directly with :: rather than loaded as a library
+library(scales) # referenced directly but not loaded
 # library(shinydashboard)  # not used. maybe try using for a different format sometime?
 
 ##############################################
@@ -134,7 +134,7 @@ render_analysis_outputs <- function(output, input, data, column_name) {
 ## Function to simulate reaction time data from Gaussian data input
 transform_to_simulated_RT <- function(df, input_column_name, output_column_name, min_RT, max_RT) {
   # Create the ECDF function that gives quantile-like continuous values
-  F <- ecdf(x)
+  F <- ecdf(df[[input_column_name]])
   # get "quantile-like" values for every data point
   quantile_ranks <- F(df[[input_column_name]])
   
