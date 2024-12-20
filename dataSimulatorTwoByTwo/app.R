@@ -300,7 +300,7 @@ server <- function(input, output) {
     simulated_data <- add_likert(simulated_data, 5)
     
     # Generate reaction time data
-    simulated_data <- transform_to_simulated_RT(simulated_data, "DV", "DV_rt", 200, 800)
+    simulated_data <- transform_to_simulated_RT(simulated_data, "DV", "DV_rt", 300, 1200)
     
     simulated_data
   })
