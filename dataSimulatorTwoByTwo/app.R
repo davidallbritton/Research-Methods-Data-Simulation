@@ -78,7 +78,7 @@ create_analysis_tab <- function(data_column, tab_name) {
       column(6, verbatimTextOutput(paste0(data_column, "_anova_results")))
     ),
     fluidRow(
-      plotOutput(paste0(data_column, "_histogram")),
+      column(6, plotOutput(paste0(data_column, "_histogram"))),
     )
   )
 }
@@ -135,7 +135,7 @@ render_analysis_outputs <- function(output, input, data, column_name) {
   output[[paste0(column_name, "_histogram")]] <- renderPlot({
     breaksarg = "Sturges"
     if(grepl("likert", column_name, fixed = T)){
-      breaksarg = seq(0.5,7.5,1)
+      breaksarg = seq(0.5, max(data[[column_name]] + 0.5), 1)
     }
     hist(
       data[[column_name]],
