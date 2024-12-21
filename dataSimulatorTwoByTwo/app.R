@@ -199,6 +199,8 @@ ui <- fluidPage(
         
         tabPanel(
           "Explanation",
+          p("By David Allbritton, 2024"),
+          
           p("This app generates simulated data for a 2x2 fully randomized",
             "(all between-subjects) design. It also shows some analyses for",
             "the simulated data. The first output panel shows the entire",
@@ -211,7 +213,7 @@ ui <- fluidPage(
             "labeled DV. DV is a gaussian (normally distributed) variable",
             "created using the R function rnorm. The values for N, means,",
             "and standard deviation that are passed to rnorm are based on the",
-            "user input in the left sidebar. Each of the other output panels",
+            "user input in the left sidebar. Each of the subsequent output panels",
             "shows another simulated dependent variable that was created by",
             "transforming DV. Thus, each time the user presses the button to",
             "generate a new dataset, a new set of simulated data points are",
@@ -224,12 +226,12 @@ ui <- fluidPage(
             tags$li("DV_likert7 - A 7-point scale"),
             tags$li("DV_likert5 - A 5-point scale"),
             tags$li("DV_rt - A reaction time measure ranging from roughly",
-                    "200 to 800 milliseconds")
+                    "300 to 1200 milliseconds")
           ),
           p("Using a single random generation process (rnorm) to produce all",
             "of the dependent variables makes it possible to easily compare",
             "what the 'same' sample looks like when measured in different",
-            "ways, by switching between output tabs. The trade-off is that",
+            "ways, by switching between output tabs. The disadvantage of this method is that",
             "the transformed versions of the dependent variable may have",
             "distributions that are different from real data. The reaction",
             "time variable DV_rt, for example, is an exponential transformation of the",
@@ -268,7 +270,52 @@ ui <- fluidPage(
             "means and effect sizes may be a useful exercise to temper one’s",
             "enthusiasm about 'significant' results from small sample sizes."
           ),
-          p("By David Allbritton, 2024")
+          p(em("Additional Resources for creating simulated data")),
+          
+            tags$ul(
+              
+              tags$li(
+                tags$a(
+                  href = "https://search.r-project.org/CRAN/refmans/psych/html/sim.anova.html",
+                  target = "_blank",
+                  "sim.anova"
+                ),
+                " - one of the",
+                tags$a(
+                  href = "https://search.r-project.org/CRAN/refmans/psych/html/sim.html",
+                  target = "_blank",
+                  "sim",
+                ),
+                "functions in Bill Revelle's ",
+                tags$a(
+                  href = "https://search.r-project.org/CRAN/refmans/psych/html/00.psych-package.html",
+                  target = "_blank",
+                  "psych",
+                ),
+                "R package."
+              ),
+              
+              tags$li(
+                tags$a(
+                  href = "https://www.jspsych.org/latest/overview/simulation/",
+                  target = "_blank",
+                  "jsPsych"
+                ),
+                "experiment software has a simulation mode for generating simulated data"
+              ),
+              
+              tags$li(
+                tags$a(
+                  href = "https://condor.depaul.edu/dallbrit/extra/resources/ReactionTimeData-2017-4-4.html",
+                  target = "_blank",
+                  "An example of using rexgauss to simulate reaction time data"
+                ),
+                "by David Allbritton"
+              )
+            ),
+            
+          
+
         )
 
       )
