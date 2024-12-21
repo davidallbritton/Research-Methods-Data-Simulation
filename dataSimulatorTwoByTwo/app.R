@@ -76,6 +76,9 @@ create_analysis_tab <- function(data_column, tab_name) {
     fluidRow(
       column(6, plotOutput(paste0(data_column, "_diagnostic_plot"), height = "250px")),
       column(6, verbatimTextOutput(paste0(data_column, "_anova_results")))
+    ),
+    fluidRow(
+      plotOutput(paste0(data_column, "_histogram")),
     )
   )
 }
@@ -128,6 +131,21 @@ render_analysis_outputs <- function(output, input, data, column_name) {
       theme_minimal() +
       labs(title = paste("Group Means for", column_name), x = "Factor A", y = column_name)
   })
+  
+  output[[paste0(column_name, "_histogram")]] <- renderPlot({
+    breaksarg = "Sturges"
+    if(grepl("likert", column_name, fixed = T)){
+      breaksarg = seq(0.5,7.5,1)
+    }
+    hist(
+      data[[column_name]],
+      main = "Histogram",
+      xlab = column_name,
+      breaks = breaksarg
+    )
+  })
+  
+  
 }
 
 ###########
