@@ -311,13 +311,30 @@ ui <- fluidPage(
                   "An example of using rexgauss to simulate reaction time data"
                 ),
                 "by David Allbritton"
+              ),
+              
+              tags$li(
+                tags$a(
+                  href = "https://stirlingcodingclub.github.io/simulating_data/index.html",
+                  target = "_blank",
+                  "Creating simulated data sets in R"
+                ),
+                "by Brad Duthie"
+              ),
+              
+              tags$li(
+                tags$a(
+                  href = "https://www.crumplab.com/programmingforpsych/simulating-and-analyzing-data-in-r.html",
+                  target = "_blank",
+                  "Simulating and Analyzing Data in R,"
+                ),
+                "from", 
+                em("Programming for Psychologists: Data Creation and Analysis"),
+                "by Matthew J. C. Crump"
               )
+              
             ),
-            
-          
-
         )
-
       )
     )
   )
