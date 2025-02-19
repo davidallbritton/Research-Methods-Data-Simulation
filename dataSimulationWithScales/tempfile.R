@@ -1,4 +1,4 @@
-generate_likert_data <- function(N, scaleLength, likertLength) {
+generate_likert_data <- function(N, scaleLength, likertMin, likertMax) {
   # Create a dataframe with N*2 rows
   df3 <- data.frame(
     A = rep("", N * 2)  # Placeholder for A values
@@ -6,7 +6,7 @@ generate_likert_data <- function(N, scaleLength, likertLength) {
   
   # Generate scale items (a1 to a[scaleLength])
   for (i in 1:scaleLength) {
-    df3[[paste0("a", i)]] <- sample(1:likertLength, size = N * 2, replace = TRUE)
+    df3[[paste0("a", i)]] <- sample(likertMin:likertMax, size = N * 2, replace = TRUE)
   }
   
   # Compute the mean of all scale items
@@ -39,6 +39,5 @@ generate_likert_data <- function(N, scaleLength, likertLength) {
 }
 
 # Example usage
-df3 <- generate_likert_data(N = 5, scaleLength = 4, likertLength = 7)
+df3 <- generate_likert_data(N = 5, scaleLength = 4, likertMin = 1, likertMax = 7)
 View(df3)
-
