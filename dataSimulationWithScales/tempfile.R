@@ -1,0 +1,54 @@
+# functions for generating scale measurements for IVs that will be median splits
+
+# N = n per condition
+# scaleLength = number of items in scale
+# likertLength = max number for likert scale (starting at 1)
+
+
+
+
+generate_likert_data <- function(N, scaleLength, likertLength) {
+  # Create a dataframe with N*2 rows
+  df3 <- data.frame(
+    A = rep("", N * 2)  # Placeholder for A values
+  )
+  
+  # Generate scale items (a1 to a[scaleLength])
+  for (i in 1:scaleLength) {
+    df3[[paste0("a", i)]] <- sample(1:likertLength, size = N * 2, replace = TRUE)
+  }
+  
+  # Compute the mean of all scale items
+  df3$aMean <- rowMeans(df3[, paste0("a", 1:scaleLength)])
+  
+  # Sort by aMean
+  df3 <- df3[order(df3$aMean, decreasing = TRUE), ]
+  
+  # Assign A values based on ranking
+  df3$A <- rep(c("A1", "A2"), each = N)
+  
+  # Identify duplicate aMean values between A1 and A2
+  duplicate_means <- intersect(df3$aMean[df3$A == "A1"], df3$aMean[df3$A == "A2"])
+  
+  if (length(duplicate_means) > 0) {
+    for (mean_value in duplicate_means) {
+      affected_rows <- which(df3$A == "A1" & df3$aMean == mean_value)
+      for (row in affected_rows) {
+        # Find the column with the minimum integer value
+        min_col <- which.min(df3[row, paste0("a", 1:scaleLength)])
+        # Increment that value by 1
+        df3[row, paste0("a", min_col)] <- df3[row, paste0("a", min_col)] + 1
+      }
+    }
+    # Recalculate the means
+    df3$aMean <- rowMeans(df3[, paste0("a", 1:scaleLength)])
+  }
+  
+  return(df3)
+}
+
+# Example usage
+df3 <- generate_likert_data(N = 5, scaleLength = 4, likertLength = 7)
+View(df3)
+
+
