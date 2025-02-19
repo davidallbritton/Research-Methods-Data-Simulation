@@ -1,12 +1,3 @@
-# functions for generating scale measurements for IVs that will be median splits
-
-# N = n per condition
-# scaleLength = number of items in scale
-# likertLength = max number for likert scale (starting at 1)
-
-
-
-
 generate_likert_data <- function(N, scaleLength, likertLength) {
   # Create a dataframe with N*2 rows
   df3 <- data.frame(
@@ -50,5 +41,4 @@ generate_likert_data <- function(N, scaleLength, likertLength) {
 # Example usage
 df3 <- generate_likert_data(N = 5, scaleLength = 4, likertLength = 7)
 View(df3)
-
 
