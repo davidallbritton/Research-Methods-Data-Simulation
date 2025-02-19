@@ -1,8 +1,6 @@
 generate_likert_data <- function(N, scaleLength, likertMin, likertMax, ivName = "A") {
   # Create a dataframe with N*2 rows
-  df3 <- data.frame(
-    ivName = rep("", N * 2)  # Placeholder for A values
-  )
+  df3 <- data.frame(matrix(nrow = N * 2, ncol = 0), stringsAsFactors = FALSE)
   
   # Generate scale items (a1 to a[scaleLength])
   for (i in 1:scaleLength) {
