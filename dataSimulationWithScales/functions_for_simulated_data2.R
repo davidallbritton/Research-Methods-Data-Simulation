@@ -74,8 +74,28 @@ reorder_dataframe <- function(df) {
 
 ##################################################
 # function to create some demographric characteristics
+generate_demographic_df <- function(df, 
+                                    gender_prop = 0.5, 
+                                    age_min = 18, 
+                                    age_max = 26, 
+                                    raceProportion = 1, 
+                                    race_1 = "race_1", 
+                                    race_2 = "race_2", 
+                                    race_3 = "race_3", 
+                                    race_4 = "race_4") {
+  # Assign Gender with proportions gender_prop, 1 - gender, 0.1
+  df$Gender <- sample(c("M", "F", "O"), size = nrow(df), replace = TRUE, 
+                      prob = c(gender_prop, 1 - gender_prop, 0.1))
+  
+  # Assign Age with random values between age_min and age_max
+  df$Age <- sample(seq(age_min, age_max), size = nrow(df), replace = TRUE)
+  
+  # Assign Race with specified ratio
+  race_values <- c(rep(race_1, raceProportion), race_2, race_3, race_4)
+  df$Race <- sample(race_values, size = nrow(df), replace = TRUE)
 
-
+  return(df)
+}
 ##################################################
 
 

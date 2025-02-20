@@ -207,10 +207,9 @@ ui <- fluidPage(
       # race
       sliderInput("raceProportion", "Race imbalance (1=none)", min=1, max=10, value=1),
       textInput("race_1", "Race label 1", value = "Race1"),
-      textInput("race_1", "Race label 2", value = "Race2"),
-      textInput("race_1", "Race label 3", value = "Race3"),
-      textInput("race_1", "Race label 4", value = "Race4"),
-      
+      textInput("race_2", "Race label 2", value = "Race2"),
+      textInput("race_3", "Race label 3", value = "Race3"),
+      textInput("race_4", "Race label 4", value = "Race4"),
       
       width = 3
     ),
@@ -373,6 +372,7 @@ ui <- fluidPage(
 ##############################################
 server <- function(input, output) {
   generate_data <- eventReactive(input$generate, {
+    #. read in all the inputs first for clarity and ease of updating
     n <- input$n
     Baseline_Mean <- input$baseline_mean
     effect_A <- input$effect_size_A * input$sd_error
@@ -389,6 +389,15 @@ server <- function(input, output) {
     min_value_B <- input$min_value_B
     max_value_B <- input$max_value_B
     iv_name_B <- input$iv_name_B
+    
+    gender_prop = input$gender / 100
+    age_min = input$age_min
+    age_max = input$age_max
+    raceProportion = input$raceProportion
+    race_1 = input$race_1
+    race_2 = input$race_2
+    race_3 = input$race_3
+    race_4 = input$race_4
     
     if (input$randseed > 0) set.seed(input$randseed)
     
@@ -424,13 +433,23 @@ server <- function(input, output) {
     # Generate reaction time data
     simulated_data <- transform_to_simulated_RT(simulated_data, "DV", "DV_rt", 300, 1200)
     
-    ## insert the scales for the IVs here ##
+    ## insert the scales for the IVs
     dfa <- generate_likert_scales(N = n, scaleLength = num_items_A, likertMin = min_value_A, likertMax = max_value_A, ivName = iv_name_A)
     dfb <- generate_likert_scales(N = n, scaleLength = num_items_B, likertMin = min_value_B, likertMax = max_value_B, ivName = iv_name_B)
     dfa2 <- reorder_dataframe(dfa)
     dfd <- cbind(dfa2, dfb)
     simulated_data <- cbind(simulated_data, dfd)
-    ##
+    
+    ## add some demographic variables
+    simulated_data <- generate_demographic_df(df = simulated_data, 
+                                   gender_prop = gender_prop, 
+                                   age_min = age_min, 
+                                   age_max = age_max, 
+                                   raceProportion = raceProportion, 
+                                   race_1 = race_1, 
+                                   race_2 = race_2, 
+                                   race_3 = race_3, 
+                                   race_4 = race_4) 
     
     simulated_data
   })
