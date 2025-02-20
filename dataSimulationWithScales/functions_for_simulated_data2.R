@@ -73,7 +73,8 @@ reorder_dataframe <- function(df) {
 
 
 ##################################################
-# function to combine the likert scales for IVs A and B
+# function to create some demographric characteristics
+
 
 ##################################################
 

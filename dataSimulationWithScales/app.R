@@ -199,6 +199,18 @@ ui <- fluidPage(
       
       tags$hr(style = "border: 1px solid"),
       
+      # gender
+      sliderInput("gender", "Gender: %F", min = 0, max = 100, value = 50),
+      # age
+      numericInput("age_min", "Minimum age", value = 18),
+      numericInput("age_max", "Maximum age", value = 26),
+      # race
+      sliderInput("raceProportion", "Race imbalance (1=none)", min=1, max=10, value=1),
+      textInput("race_1", "Race label 1", value = "Race1"),
+      textInput("race_1", "Race label 2", value = "Race2"),
+      textInput("race_1", "Race label 3", value = "Race3"),
+      textInput("race_1", "Race label 4", value = "Race4"),
+      
       
       width = 3
     ),
