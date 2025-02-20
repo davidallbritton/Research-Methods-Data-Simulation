@@ -10,6 +10,8 @@ library(sjstats)
 # library(shinydashboard)  # not used. maybe try using for a different format sometime?
 
 ##############################################
+source("functions_for_simulated_data2.R")
+
 #######  Define custom functions #######
 
 ###########
@@ -183,15 +185,20 @@ ui <- fluidPage(
       numericInput("sd_error", "Standard deviation:", value = 1),
       numericInput("randseed", "Random seed (0 for random):", value = 0),
       
+      tags$hr(style = "border: 1px solid"),
       numericInput("num_items_A", "Number of Likert items for Scale A:", value = 2, min = 1, step = 1),
       numericInput("min_value_A", "Minimum value for each item in Scale A:", value = 1, step = 1),
       numericInput("max_value_A", "Maximum value for each item in Scale A:", value = 7, step = 1),
-      textInput("iv_name_A", "IV name for Scale A:", value = "A"),
+      textInput("iv_name_A", "IV name for Scale A:", value = "A_"),
       
+      tags$hr(style = "border: 1px solid"),
       numericInput("num_items_B", "Number of Likert items for Scale B:", value = 2, min = 1, step = 1),
       numericInput("min_value_B", "Minimum value for each item in Scale B:", value = 1, step = 1),
       numericInput("max_value_B", "Maximum value for each item in Scale B:", value = 7, step = 1),
-      textInput("iv_name_B", "IV name for Scale B:", value = "B"),
+      textInput("iv_name_B", "IV name for Scale B:", value = "B_"),
+      
+      tags$hr(style = "border: 1px solid"),
+      
       
       width = 3
     ),
@@ -404,6 +411,14 @@ server <- function(input, output) {
     
     # Generate reaction time data
     simulated_data <- transform_to_simulated_RT(simulated_data, "DV", "DV_rt", 300, 1200)
+    
+    ## insert the scales for the IVs here ##
+    dfa <- generate_likert_scales(N = n, scaleLength = num_items_A, likertMin = min_value_A, likertMax = max_value_A, ivName = iv_name_A)
+    dfb <- generate_likert_scales(N = n, scaleLength = num_items_B, likertMin = min_value_B, likertMax = max_value_B, ivName = iv_name_B)
+    dfa2 <- reorder_dataframe(dfa)
+    dfd <- cbind(dfa2, dfb)
+    simulated_data <- cbind(simulated_data, dfd)
+    ##
     
     simulated_data
   })
