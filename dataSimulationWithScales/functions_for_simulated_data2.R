@@ -106,7 +106,7 @@ create_dv_scale <- function(df, mean_col = "DV", likert_min = 1, likert_max = 7,
   # Rescale mean_col to the Likert scale range
   min_val <- min(df[[mean_col]], na.rm = TRUE)
   max_val <- max(df[[mean_col]], na.rm = TRUE)
-  df[[paste0(dv_name, "_mean")]] <- likert_min + (df[[mean_col]] - min_val) / (max_val - min_val) * (likert_max - likert_min)
+  df[[paste0(dv_name, "_target_mean")]] <- likert_min + (df[[mean_col]] - min_val) / (max_val - min_val) * (likert_max - likert_min)
   
   # Function to generate valid scale item values
   generate_valid_values <- function(target_mean, n_scale_items, likert_min, likert_max) {
@@ -130,7 +130,7 @@ create_dv_scale <- function(df, mean_col = "DV", likert_min = 1, likert_max = 7,
   }
   
   for (row in seq_len(nrow(df))) {
-    target_mean <- df[[paste0(dv_name, "_mean")]][row]
+    target_mean <- df[[paste0(dv_name, "_target_mean")]][row]
     scale_values <- generate_valid_values(target_mean, n_scale_items, likert_min, likert_max)
     for (i in seq_len(n_scale_items)) {
       df[row, paste0(dv_name, "_", i)] <- scale_values[i]
