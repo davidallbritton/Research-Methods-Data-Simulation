@@ -211,6 +211,12 @@ ui <- fluidPage(
       textInput("race_3", "Race label 3", value = "Race3"),
       textInput("race_4", "Race label 4", value = "Race4"),
       
+      tags$hr(style = "border: 1px solid"),
+      numericInput("num_items_dv", "Number of Likert items for DV:", value = 2, min = 1, step = 1),
+      numericInput("min_value_dv", "Minimum value for each item in Scale DV:", value = 1, step = 1),
+      numericInput("max_value_dv", "Maximum value for each item in Scale DV:", value = 7, step = 1),
+      textInput("iv_name_dv", "DV name for Scale DV:", value = "DV_Scale"),
+      
       width = 3
     ),
     
@@ -452,7 +458,12 @@ server <- function(input, output) {
                                    race_4 = race_4) 
     
     # add simulated scale of multiple likert items for DV
-    simulated_data <-  create_dv_scale(simulated_data)
+    simulated_data <-  create_dv_scale(simulated_data,
+                                            n_scale_items = input$num_items_dv,
+                                            likert_min = input$min_value_dv,
+                                            likert_max = input$max_value_dv,
+                                            dv_name = input$iv_name_dv
+                                       )
     
     simulated_data
   })
