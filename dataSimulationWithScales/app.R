@@ -451,6 +451,9 @@ server <- function(input, output) {
                                    race_3 = race_3, 
                                    race_4 = race_4) 
     
+    # add simulated scale of multiple likert items for DV
+    simulated_data <-  create_dv_scale(simulated_data)
+    
     simulated_data
   })
   
