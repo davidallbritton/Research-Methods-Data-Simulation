@@ -182,6 +182,17 @@ ui <- fluidPage(
       numericInput("effect_size_AB", "Effect size for Interaction (Cohen's d):", value = 0.2),
       numericInput("sd_error", "Standard deviation:", value = 1),
       numericInput("randseed", "Random seed (0 for random):", value = 0),
+      
+      numericInput("num_items_A", "Number of Likert items for Scale A:", value = 2, min = 1, step = 1),
+      numericInput("min_value_A", "Minimum value for each item in Scale A:", value = 1, step = 1),
+      numericInput("max_value_A", "Maximum value for each item in Scale A:", value = 7, step = 1),
+      textInput("iv_name_A", "IV name for Scale A:", value = "A"),
+      
+      numericInput("num_items_B", "Number of Likert items for Scale B:", value = 2, min = 1, step = 1),
+      numericInput("min_value_B", "Minimum value for each item in Scale B:", value = 1, step = 1),
+      numericInput("max_value_B", "Maximum value for each item in Scale B:", value = 7, step = 1),
+      textInput("iv_name_B", "IV name for Scale B:", value = "B"),
+      
       width = 3
     ),
     
@@ -349,6 +360,16 @@ server <- function(input, output) {
     effect_B <- input$effect_size_B * input$sd_error
     effect_AB <- input$effect_size_AB * input$sd_error
     sd_error <- input$sd_error
+    
+    num_items_A <- input$num_items_A
+    min_value_A <- input$min_value_A
+    max_value_A <- input$max_value_A
+    iv_name_A <- input$iv_name_A
+    
+    num_items_B <- input$num_items_B
+    min_value_B <- input$min_value_B
+    max_value_B <- input$max_value_B
+    iv_name_B <- input$iv_name_B
     
     if (input$randseed > 0) set.seed(input$randseed)
     
