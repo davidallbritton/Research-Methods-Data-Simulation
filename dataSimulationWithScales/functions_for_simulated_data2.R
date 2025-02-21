@@ -84,7 +84,7 @@ generate_demographic_df <- function(df,
                                     race_3 = "race_3", 
                                     race_4 = "race_4") {
   # Assign Gender with proportions gender_prop, 1 - gender, 0.1
-  df$Gender <- sample(c("M", "F", "O"), size = nrow(df), replace = TRUE, 
+  df$Gender <- sample(c("F", "M", "O"), size = nrow(df), replace = TRUE, 
                       prob = c(gender_prop, 1 - gender_prop, 0.1))
   
   # Assign Age with random values between age_min and age_max
@@ -158,6 +158,20 @@ create_dv_scale <- function(df, mean_col = "DV", likert_min = 1, likert_max = 7,
 #
 ######################################
 
+########## kluge function to copy last column 
+copy_DV_Scale_mean_column <- function(df) {
+  # Check if "DV_Scale_mean" is already a column
+  if (!"DV_Scale_mean" %in% colnames(df)) {
+    # Get the last column name
+    last_col_name <- colnames(df)[ncol(df)]
+    
+    # Copy the last column to a new column named "DV_Scale_mean"
+    df$DV_Scale_mean <- df[[last_col_name]]
+  }
+  
+  return(df)
+}
+########## kluge function to copy last column 
 
 
 

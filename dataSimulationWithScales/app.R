@@ -231,6 +231,7 @@ ui <- fluidPage(
         create_analysis_tab("DV_likert7", "Analysis of DV_likert7"),
         create_analysis_tab("DV_likert5", "Analysis of DV_likert5"),
         create_analysis_tab("DV_rt", "Analysis of DV_rt"),
+        create_analysis_tab("DV_Scale_mean", "Analysis of DV Scale Mean"),
         
         tabPanel(
           "Explanation",
@@ -465,6 +466,10 @@ server <- function(input, output) {
                                             dv_name = input$iv_name_dv
                                        )
     
+    # kluge to avoid dealing with dynamic column name in the ui
+    ########## kluge function to copy last column 
+    simulated_data <- copy_DV_Scale_mean_column(simulated_data)
+    
     simulated_data
   })
   
@@ -485,6 +490,9 @@ server <- function(input, output) {
     render_analysis_outputs(output, input, data, "DV_likert7")
     render_analysis_outputs(output, input, data, "DV_likert5")
     render_analysis_outputs(output, input, data, "DV_rt")
+ #   col_name_dv_scale_mean <- paste0(input$iv_name_dv, "_mean")
+ #   render_analysis_outputs(output, input, data, col_name_dv_scale_mean)
+    render_analysis_outputs(output, input, data, "DV_Scale_mean") # kluge to avoid dealing with dynamic column name in ui
   })
 }
 
