@@ -14,7 +14,7 @@ generate_likert_scales <- function(N, scaleLength, likertMin, likertMax, ivName 
   }
   
   # Compute the mean of all scale items
-  df3[[paste0(ivName, "_Mean")]] <- rowMeans(df3[, paste0(ivName, "_", 1:scaleLength)])
+  df3[[paste0(ivName, "_Mean")]] <- rowMeans(df3[, paste0(ivName, "_", 1:scaleLength), drop = FALSE])
   
   # Sort by A_Mean
   df3 <- df3[order(df3[[paste0(ivName, "_Mean")]], decreasing = TRUE), ]
@@ -36,7 +36,7 @@ generate_likert_scales <- function(N, scaleLength, likertMin, likertMax, ivName 
       }
     }
     # Recalculate the means
-    df3[[paste0(ivName, "_Mean")]] <- rowMeans(df3[, paste0(ivName, "_", 1:scaleLength)])
+    df3[[paste0(ivName, "_Mean")]] <- rowMeans(df3[, paste0(ivName, "_", 1:scaleLength), drop = FALSE])
   }
   
   return(df3)
